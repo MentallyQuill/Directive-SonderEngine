@@ -91,6 +91,8 @@ def test_projection_joins_directive_crew_only_by_stable_recognized_host_id():
 def test_projection_omits_hidden_objectives_and_private_state_roots():
     projection = create_player_projection(API(), 9)
 
+    assert projection["ship"]["name"] == "U.S.S. Breckenridge"
+    assert projection["ship"]["class_name"] == "Intrepid-class"
     assert all(item["visibility"] != "hidden" for item in projection["mission"]["objectives"])
     rendered = repr(projection)
     for forbidden in ("evidenceLog", "worldFacts", "acceptedEvidenceKeys", "psychology", "private_history"):

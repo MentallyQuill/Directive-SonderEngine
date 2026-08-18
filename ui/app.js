@@ -59,7 +59,7 @@ export function createDirectiveView(sonder, { onClose = () => sonder.closeView()
         body.replaceChildren();
         if (chatId === undefined || chatId === null) {
           body.append(state.route === "campaign"
-            ? renderCreatorView(state.creator, { startCampaign })
+            ? renderCreatorView(state.creator, { provisionCampaign, openCampaign, refreshCampaign })
             : noCampaignRoute(state.route));
           return;
         }
@@ -67,10 +67,10 @@ export function createDirectiveView(sonder, { onClose = () => sonder.closeView()
           body.append(emptyStory(onClose));
           return;
         }
-        body.append(routeView(state.route, projection, state));
+        body.append(routeView(state.route, projection, state, { continueCampaign }));
       }
 
-      async function startCampaign(payload, updateStatus) {
+      async function provisionCampaign(payload) {
         const mode = SIMULATION_MODES.find(({ value }) => value === payload.simulation_mode);
         if (!mode) throw new Error("Unsupported simulation mode");
         const body = Object.fromEntries([
@@ -78,9 +78,21 @@ export function createDirectiveView(sonder, { onClose = () => sonder.closeView()
           [mode.name, mode.value],
         ]);
         const made = await sonder.api("POST", "/api/extensions/directive/x/start", body);
-        updateStatus?.("Campaign created. Opening story…");
-        await sonder.chats.open(made.chat_id);
+        if (made?.chat_id === undefined || made?.chat_id === null) throw new Error("Campaign start returned no chat id");
+        return made.chat_id;
+      }
+
+      async function openCampaign(createdChatId) {
+        await sonder.chats.open(createdChatId);
+      }
+
+      async function refreshCampaign() {
         await sonder.refresh();
+      }
+
+      async function continueCampaign(activeChatId) {
+        await sonder.chats.open(activeChatId);
+        onClose();
       }
     }
   };
@@ -94,12 +106,12 @@ function emptyStory(onClose) {
     el("button", { class: "directive-primary", onclick: onClose }, "Return to story"));
 }
 
-function routeView(route, data, state) {
+function routeView(route, data, state, actions) {
   if (route === "mission") return missionView(data);
   if (route === "ship") return shipView(data.ship);
   if (route === "people") return peopleView(data.people, false);
   if (route === "settings") return settingsView(data);
-  return renderCampaignView(data, state.campaign, {});
+  return renderCampaignView(data, state.campaign, actions);
 }
 
 function noCampaignRoute(route) {

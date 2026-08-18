@@ -95,3 +95,113 @@ Result: all exited 0. Git emitted only the repository's line-ending conversion n
 - Task 4 owns rendered 1440x900 and 390x844 browser geometry, computed 44px control proof, screenshots, and reduced-motion verification; this task establishes the class and interaction contracts but does not claim that later visual gate.
 - Mission, People, Ship, and Settings still use the pre-Task-3 placeholders in `ui/app.js`; Task 3 is explicitly responsible for replacing those routes with player-safe workspaces.
 - Six full-suite integration tests remain skipped until a current Sonder checkout is configured at the fixture's expected external path; no Task 2 behavior test is skipped.
+
+## Review Fix Round 1
+
+### Findings Addressed
+
+1. Split the creator lifecycle into persisted provisioning, open, and refresh phases. Once `/start` returns a `chat_id`, retry never provisions again. An open failure retries only `chats.open` and then refresh; a refresh failure retries only refresh.
+2. Expanded ownership only to `directive/projection/player.py` and its projection test so the player projection carries the bundled campaign source's exact ship name and class. Removed all campaign-id-to-ship inference from the UI.
+3. Wired Campaign Continue through the supported `sonder.chats.open(data.chat_id)` action and closes the Directive view only after the story opens successfully.
+4. Rejected form submission outside Review, transferred state and focus to the Review tab, and opted out of native hidden-control validation so the custom complete validation path always runs.
+5. Added `data-creator-active-step`, complete tab/tabpanel relationships, real keyboard-roving coverage, null-safe metrics, and an always-present framed campaign media region with an explicit load-error placeholder.
+
+### RED Evidence
+
+Combined Node RED command:
+
+```text
+node --test tests/ui/directive-campaign.test.mjs
+```
+
+Result: exit 1; 2 passed, 5 failed. Failures proved:
+
+- null Stardate/completed values rendered as `0.0`/`0`;
+- creator active-step/ARIA semantics were absent;
+- open and refresh failures both reported “No partial story was kept”;
+- Continue was not rendered because the live app passed no Campaign actions;
+- the media placeholder contract was absent behind the first null-metric assertion.
+
+Projection RED command:
+
+```text
+py -3.13 -m pytest tests/projection/test_player.py --basetemp .tmp/pytest-task2-review1-projection-red
+```
+
+Result: exit 1; 2 passed, 1 failed with `KeyError: 'name'`, proving the authoritative ship identity was absent from the player projection.
+
+UI-inference removal RED command:
+
+```text
+node --test --test-name-pattern="Campaign switches" tests/ui/directive-campaign.test.mjs
+```
+
+Result: exit 1. A projection containing only `campaign.id = ashes-of-peace` still produced `U.S.S. Breckenridge` and `Intrepid-class`, proving the view synthesized ship facts.
+
+Native-validation RED command:
+
+```text
+node --test --test-name-pattern="Creator keeps" tests/ui/directive-campaign.test.mjs
+```
+
+Result: exit 1 with `false !== true` for `form.noValidate`, proving hidden required controls could prevent the submit handler from transferring focus to Review.
+
+### GREEN Evidence
+
+Focused Node gate:
+
+```text
+node --test tests/ui/directive-campaign.test.mjs tests/ui/directive-shell.test.mjs
+```
+
+Result: exit 0; 8 passed, 0 failed. The gate includes exact one-POST counts across open and refresh failure/retry, early submit focus transfer, keyboard roving, Continue, null metrics, and media error fallback.
+
+Projection gate:
+
+```text
+py -3.13 -m pytest tests/projection/test_player.py --basetemp .tmp/pytest-task2-review1-projection-final
+```
+
+Result: exit 0; 3 passed, 0 failed.
+
+Full UI contract gate:
+
+```text
+py -3.13 -m pytest tests/ui --basetemp .tmp/pytest-task2-review1-ui
+```
+
+Result: exit 0; 5 passed, 0 failed.
+
+Full repository gate:
+
+```text
+py -3.13 -m pytest --basetemp .tmp/pytest-task2-review1-full
+```
+
+Result: exit 0; 99 passed, 6 skipped. The same six configured-Sonder integration cases remain skipped because the external checkout is absent.
+
+Additional checks:
+
+```text
+node --check ui/app.js
+node --check ui/views/campaign.js
+node --check ui/views/creator.js
+py -3.13 -m py_compile directive/projection/player.py
+git diff --check
+```
+
+Result: all exited 0; Git emitted only line-ending conversion notices.
+
+### Review Fix Self-Review
+
+- Verified the created `chat_id` is stored before any downstream action; open success is recorded before refresh. Retry branches cannot reach `/start` once provisioning succeeded and cannot reopen a story once open succeeded.
+- Verified `/start` rejection still uses the accurate no-partial-story status and retains the complete form for a fresh provisioning retry.
+- Verified ship name/class flow from `load_ashes_source().campaign.ship` into the player projection and are read literally by Campaign; an id-only projection renders explicit unavailable states.
+- Verified Continue closes only after `chats.open` resolves.
+- Verified all four tabs own stable ids, `aria-controls`, and matching labeled tabpanels; active state synchronizes selected state, tabindex, panel visibility, form dataset, and focus.
+- Verified both Command and Library always contain a framed media region and convert image failure into visible placeholder copy without inventing art.
+- Inline review was retained because this task explicitly forbids subagents.
+
+### Review Fix Concerns
+
+- Browser-computed geometry and the visual styling of the new media placeholder remain part of Task 4's 1440x900/390x844 rendered parity gate.

@@ -5,13 +5,6 @@ const CAMPAIGN_MODES = Object.freeze([
   Object.freeze({ id: "library", label: "Library" }),
   Object.freeze({ id: "records", label: "Records" }),
 ]);
-const CAMPAIGN_PACKAGES = Object.freeze({
-  "ashes-of-peace": Object.freeze({
-    shipName: "U.S.S. Breckenridge",
-    shipClass: "Intrepid-class",
-  }),
-});
-
 export function renderCampaignView(data = {}, state = {}, actions = {}) {
   const root = createElement("section", "directive-v1-campaign directive-campaign-workspace");
   const commandBar = createElement("nav", "directive-campaign-command-bar directive-action-row directive-lcars-panel");
@@ -84,15 +77,7 @@ function renderCommand(data, actions) {
 
 function createCampaignHero(data) {
   const hero = createElement("section", "campaign-hero campaign-dashboard-hero");
-  const source = clean(data.media?.ship?.variants?.hero);
-  if (source) {
-    const media = createElement("div", "campaign-hero-media directive-media-frame");
-    const image = createElement("img");
-    image.src = source;
-    image.alt = clean(data.media?.ship?.alt) || "";
-    media.append(image);
-    hero.append(media);
-  }
+  hero.append(createCampaignMedia(data, "hero", "campaign-hero-media directive-media-frame"));
 
   const copy = createElement("div", "campaign-hero-copy");
   copy.append(
@@ -112,15 +97,7 @@ function renderLibrary(data) {
   heading.append(appendText(createElement("h2"), "Campaign Library"));
   const packages = createElement("div", "directive-v1-campaign-packages");
   const card = createElement("article", "directive-v1-campaign-package directive-package-card");
-  const source = clean(data.media?.ship?.variants?.card) || clean(data.media?.ship?.variants?.hero);
-  if (source) {
-    const media = createElement("div", "directive-v1-campaign-media directive-media-frame");
-    const image = createElement("img");
-    image.src = source;
-    image.alt = clean(data.media?.ship?.alt) || "";
-    media.append(image);
-    card.append(media);
-  }
+  card.append(createCampaignMedia(data, "card", "directive-v1-campaign-media directive-media-frame"));
   const copy = createElement("div", "directive-v1-campaign-package-copy");
   copy.append(
     appendText(createElement("span", "directive-v1-kicker"), "Installed campaign package"),
@@ -150,19 +127,39 @@ function renderRecords(data) {
 }
 
 function campaignFacts(data) {
-  const stardate = Number.isFinite(Number(data.time?.stardate)) ? Number(data.time.stardate).toFixed(1) : null;
-  const completed = Number.isFinite(Number(data.journey?.completed_count)) ? String(Number(data.journey.completed_count)) : null;
-  const packageFacts = CAMPAIGN_PACKAGES[clean(data.campaign?.id)] || {};
+  const stardateValue = finiteProjectionNumber(data.time?.stardate);
+  const completedValue = finiteProjectionNumber(data.journey?.completed_count);
+  const stardate = stardateValue === null ? null : stardateValue.toFixed(1);
+  const completed = completedValue === null ? null : String(completedValue);
   return [
     ["Player", fact(data.viewer?.name, "Player identity unavailable.")],
-    ["Ship", fact(data.ship?.name || packageFacts.shipName, "Ship identity unavailable.")],
-    ["Class", fact(data.ship?.class_name || data.ship?.class || packageFacts.shipClass, "Ship class unavailable.")],
+    ["Ship", fact(data.ship?.name, "Ship identity unavailable.")],
+    ["Class", fact(data.ship?.class_name, "Ship class unavailable.")],
     ["Current mission", fact(data.mission?.title || data.mission?.id, "Current mission unavailable.")],
     ["Simulation mode", fact(data.campaign?.simulation_mode, "Simulation mode unavailable.")],
     ["Stardate", fact(stardate, "Stardate unavailable.")],
     ["Completed", fact(completed, "Completion record unavailable.")],
     ["Location", fact(data.location?.name, "Location is not currently established.")],
   ];
+}
+
+function createCampaignMedia(data, variant, className) {
+  const frame = createElement("div", className);
+  const placeholder = appendText(createElement("span", "directive-media-placeholder"), "Campaign media unavailable.");
+  const source = clean(data.media?.ship?.variants?.[variant]) || (variant === "card" ? clean(data.media?.ship?.variants?.hero) : "");
+  placeholder.hidden = Boolean(source);
+  if (source) {
+    const image = createElement("img");
+    image.src = source;
+    image.alt = clean(data.media?.ship?.alt) || "";
+    image.addEventListener("error", () => {
+      image.hidden = true;
+      placeholder.hidden = false;
+    });
+    frame.append(image);
+  }
+  frame.append(placeholder);
+  return frame;
 }
 
 function createFact(label, value) {
@@ -177,6 +174,13 @@ function fact(value, empty) {
 
 function clean(value) {
   return typeof value === "string" ? value.trim() : value === undefined || value === null ? "" : String(value);
+}
+
+function finiteProjectionNumber(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string" && !value.trim()) return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
 function nextModeIndex(index, key, count) {

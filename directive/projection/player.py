@@ -117,16 +117,18 @@ def _people(api, chat_id: int, player_view: Mapping[str, Any], media: Mapping[st
     return output
 
 
-def _ship_projection(frame_ship: Mapping[str, Any], branch_id: str) -> dict[str, Any]:
-    source = load_ashes_source()
+def _ship_projection(source, frame_ship: Mapping[str, Any], branch_id: str) -> dict[str, Any]:
     state = derive_ship_state(
         source.ship,
         source.cohesion,
         frame_ship.get("effects") or (),
         branch_id=branch_id,
     )
+    identity = source.campaign.get("ship") or {}
     return {
         "kind": "directive.shipPlayerProjection.v1",
+        "name": identity.get("name"),
+        "class_name": identity.get("class"),
         "systems": [{
             "id": item["id"],
             "label": item.get("label"),
@@ -181,12 +183,13 @@ def _transition_projection(value: Any) -> dict[str, Any] | None:
 
 
 def create_player_projection(api, chat_id: int) -> dict[str, Any]:
+    source = load_ashes_source()
     player = api.player_view(chat_id, "player")
     frame = api.frame_state(chat_id).get() or {}
     campaign_state = api.state(chat_id).get() or {}
     mission = frame.get("mission") or {}
     settlement = frame.get("settlement") or {}
-    campaign = load_ashes_source().campaign.get("campaign") or {}
+    campaign = source.campaign.get("campaign") or {}
     media = _media()
     projection = {
         "kind": "directive.playerProjection.v1",
@@ -213,6 +216,7 @@ def create_player_projection(api, chat_id: int) -> dict[str, Any]:
             "campaign_conclusion": copy.deepcopy(settlement.get("campaign_conclusion")),
         },
         "ship": _ship_projection(
+            source,
             frame.get("ship") or {},
             str(mission.get("branchId") or ""),
         ),

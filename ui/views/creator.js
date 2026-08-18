@@ -28,6 +28,7 @@ export function renderCreatorView(state = {}, actions = {}) {
   if (!clean(state.input.simulation_mode)) state.input.simulation_mode = "Command";
 
   const form = createElement("form", "directive-creator-form directive-creator-workspace directive-lcars-console");
+  form.noValidate = true;
   const overview = createElement("header", "directive-creator-overview directive-lcars-panel");
   const overviewCopy = createElement("div", "directive-creator-overview-copy");
   overviewCopy.append(
@@ -49,9 +50,11 @@ export function renderCreatorView(state = {}, actions = {}) {
   const sections = new Map();
   const stepButtons = CREATOR_STEPS.map(({ id, label }, index) => {
     const button = appendText(createElement("button", "directive-button directive-step-button directive-creator-step-button"), label);
+    button.id = `directive-creator-step-${id}-tab`;
     button.type = "button";
     button.dataset.creatorStep = id;
     button.setAttribute("role", "tab");
+    button.setAttribute("aria-controls", `directive-creator-step-${id}-panel`);
     button.addEventListener("click", () => activateStep(id));
     button.addEventListener("keydown", (event) => {
       const nextIndex = nextStepIndex(index, event.key, stepButtons.length);
@@ -81,8 +84,10 @@ export function renderCreatorView(state = {}, actions = {}) {
 
   for (const step of CREATOR_STEPS) {
     const section = createElement("section", "directive-creator-section");
+    section.id = `directive-creator-step-${step.id}-panel`;
     section.dataset.creatorStep = step.id;
     section.setAttribute("role", "tabpanel");
+    section.setAttribute("aria-labelledby", `directive-creator-step-${step.id}-tab`);
     const header = createElement("header", "directive-creator-section-header");
     header.append(
       appendText(createElement("h3", "directive-creator-section-title"), step.label),
@@ -100,18 +105,39 @@ export function renderCreatorView(state = {}, actions = {}) {
   form.append(overview, progressHeader, stepRow, status, commandBar, ...sections.values());
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (state.step !== "review") {
+      activateStep("review");
+      stepButtons.at(-1).focus({ preventScroll: true });
+      updateStatus("Review the commissioning file before starting the campaign.");
+      return;
+    }
     const missing = requiredNames().filter((name) => !clean(state.input[name]));
     if (missing.length) {
       updateStatus("Complete every required field before starting the campaign.");
       return;
     }
     submit.disabled = true;
-    updateStatus("Provisioning the complete campaign…");
     try {
-      await actions.startCampaign?.(payload(state.input), updateStatus);
+      if (state.provisionedChatId === undefined || state.provisionedChatId === null) {
+        updateStatus("Provisioning the complete campaign…");
+        state.provisionedChatId = await actions.provisionCampaign(payload(state.input));
+      }
+      if (state.storyOpened !== true) {
+        updateStatus("Campaign created. Opening story…");
+        await actions.openCampaign(state.provisionedChatId);
+        state.storyOpened = true;
+      }
+      updateStatus("Campaign opened. Refreshing Directive…");
+      await actions.refreshCampaign();
     } catch (_error) {
       submit.disabled = false;
-      updateStatus("The campaign could not be created. No partial story was kept. You can retry.");
+      if (state.provisionedChatId === undefined || state.provisionedChatId === null) {
+        updateStatus("The campaign could not be created. No partial story was kept. You can retry.");
+      } else if (state.storyOpened !== true) {
+        updateStatus("Campaign created, but the story could not be opened. Retry opening the existing story.");
+      } else {
+        updateStatus("Campaign opened, but Directive could not refresh. Retry refresh for the existing story.");
+      }
     }
   });
   activateStep(state.step, false);
@@ -120,6 +146,7 @@ export function renderCreatorView(state = {}, actions = {}) {
   function activateStep(stepId, notify = true) {
     if (!sections.has(stepId)) return;
     state.step = stepId;
+    form.dataset.creatorActiveStep = stepId;
     stepButtons.forEach((button) => {
       const selected = button.dataset.creatorStep === stepId;
       button.setAttribute("aria-selected", selected ? "true" : "false");

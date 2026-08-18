@@ -45,8 +45,10 @@ test("Campaign switches Command, Library, and Records without inventing missing 
   assert.match(view.textContent, /Location is not currently established\./);
   assert.doesNotMatch(view.textContent, /Asterion Station/);
 
-  click(view, '[data-campaign-mode="library"]');
+  const modeButtons = [...view.querySelectorAll("[data-campaign-mode]")];
+  dispatchKeyboard(fixture.window, modeButtons[0], "ArrowRight");
   assert.equal(state.mode, "library");
+  assert.equal(fixture.document.activeElement, modeButtons[1]);
   assert.match(view.querySelector(".directive-package-card")?.className || "", /\bdirective-package-card\b/);
   assert.match(view.textContent, /Installed campaign package/);
 
@@ -60,10 +62,37 @@ test("Campaign switches Command, Library, and Records without inventing missing 
   assert.match(absent.textContent, /Player identity unavailable\./);
   assert.match(absent.textContent, /Current mission unavailable\./);
   assert.doesNotMatch(absent.textContent, /Ashes of Peace/);
+
+  const unprojectedShip = renderCampaignView({ campaign: { id: "ashes-of-peace" }, ship: {} }, { mode: "command" }, {});
+  assert.match(unprojectedShip.textContent, /Ship identity unavailable\./);
+  assert.match(unprojectedShip.textContent, /Ship class unavailable\./);
   fixture.window.close();
 });
 
-test("Creator keeps required fields across four steps and renders a literal review", () => {
+test("Campaign media fails to a framed placeholder and null metrics stay unavailable", () => {
+  const fixture = installDomFixture();
+  const data = campaignProjection();
+  data.time.stardate = null;
+  data.journey.completed_count = null;
+  const view = renderCampaignView(data, { mode: "command" }, {});
+  fixture.document.body.append(view);
+
+  assert.match(view.textContent, /StardateStardate unavailable\./);
+  assert.match(view.textContent, /CompletedCompletion record unavailable\./);
+  const frame = view.querySelector(".campaign-hero-media");
+  const image = frame?.querySelector("img");
+  const placeholder = frame?.querySelector(".directive-media-placeholder");
+  assert.ok(frame);
+  assert.ok(image);
+  assert.ok(placeholder);
+  image.dispatchEvent(new fixture.window.Event("error"));
+  assert.equal(image.hidden, true);
+  assert.equal(placeholder.hidden, false);
+  assert.match(placeholder.textContent, /Campaign media unavailable/);
+  fixture.window.close();
+});
+
+test("Creator keeps required fields across four steps, blocks early submit, and renders a literal review", async () => {
   const fixture = installDomFixture();
   const state = { step: "identity", input: {}, status: "" };
   const submitted = [];
@@ -73,6 +102,7 @@ test("Creator keeps required fields across four steps and renders a literal revi
   fixture.document.body.append(view);
 
   assert.match(view.className, /\bdirective-creator-workspace\b/);
+  assert.equal(view.noValidate, true);
   assert.deepEqual(
     [...view.querySelectorAll("[data-creator-step]")]
       .filter((element) => element.matches("button"))
@@ -80,9 +110,22 @@ test("Creator keeps required fields across four steps and renders a literal revi
     ["Identity", "Service", "Command Profile", "Review"],
   );
   assert.equal([...view.querySelectorAll("[name]")].filter((control) => control.required).length, 13);
+  assert.equal(view.dataset.creatorActiveStep, "identity");
+  const stepButtons = [...view.querySelectorAll('button[data-creator-step]')];
+  const stepPanels = [...view.querySelectorAll('[role="tabpanel"]')];
+  assert.ok(stepButtons.every((button) => button.getAttribute("aria-controls")));
+  assert.ok(stepPanels.every((panel) => panel.getAttribute("aria-labelledby")));
+  assert.deepEqual(
+    stepButtons.map((button) => button.getAttribute("aria-controls")),
+    stepPanels.map((panel) => panel.id),
+  );
+
+  dispatchKeyboard(fixture.window, stepButtons[0], "ArrowRight");
+  assert.equal(state.step, "service");
+  assert.equal(view.dataset.creatorActiveStep, "service");
+  assert.equal(fixture.document.activeElement, stepButtons[1]);
 
   setValue(fixture.window, view.querySelector('[name="name"]'), PLAYER_VALUES.name);
-  click(view, '[data-creator-step="service"]');
   click(view, '[data-creator-step="identity"]');
   assert.equal(view.querySelector('[name="name"]').value, PLAYER_VALUES.name);
 
@@ -90,8 +133,10 @@ test("Creator keeps required fields across four steps and renders a literal revi
     setValue(fixture.window, view.querySelector(`[name="${name}"]`), value);
   }
   setValue(fixture.window, view.querySelector('[name="simulation_mode"]'), "Exploration", "change");
-  click(view, '[data-creator-step="review"]');
+  await submit(fixture.window, view);
   assert.equal(state.step, "review");
+  assert.equal(view.dataset.creatorActiveStep, "review");
+  assert.equal(fixture.document.activeElement, stepButtons[3]);
   assert.match(view.querySelector("[data-creator-review]")?.textContent || "", /Avery Quill/);
   assert.match(view.querySelector("[data-creator-review]")?.textContent || "", /Commander Quill/);
   assert.match(view.querySelector("[data-creator-review]")?.textContent || "", /Exploration/);
@@ -145,7 +190,81 @@ test("Directive provisions once at final review, opens the chat, reports progres
   assert.equal(calls.length, 2);
   assert.deepEqual(opened, [91]);
   assert.equal(refreshes, 1);
-  assert.match(container.querySelector('[role="status"]')?.textContent || "", /Opening story/i);
+  assert.match(container.querySelector('[role="status"]')?.textContent || "", /Campaign opened.*Refreshing/i);
+  fixture.window.close();
+});
+
+test("A failed chat open retries only open and never provisions a second story", async () => {
+  const fixture = installDomFixture();
+  let posts = 0;
+  let opens = 0;
+  let refreshes = 0;
+  const sonder = {
+    state: () => ({ chatId: null }),
+    api: async () => { posts += 1; return { chat_id: 92 }; },
+    chats: { open: async () => { opens += 1; if (opens === 1) throw new Error("open rejected"); } },
+    refresh: async () => { refreshes += 1; },
+    closeView: () => {},
+  };
+  const container = fixture.document.createElement("div");
+  fixture.document.body.append(container);
+  await createDirectiveView(sonder).render(container);
+  fillCreator(fixture.window, container);
+  click(container, '[data-creator-step="review"]');
+
+  await submit(fixture.window, container.querySelector("form"));
+  assert.deepEqual([posts, opens, refreshes], [1, 1, 0]);
+  assert.match(container.querySelector('[role="status"]')?.textContent || "", /created.*retry opening/i);
+  await submit(fixture.window, container.querySelector("form"));
+  assert.deepEqual([posts, opens, refreshes], [1, 2, 1]);
+  fixture.window.close();
+});
+
+test("A failed refresh retries only refresh after the created story was opened", async () => {
+  const fixture = installDomFixture();
+  let posts = 0;
+  let opens = 0;
+  let refreshes = 0;
+  const sonder = {
+    state: () => ({ chatId: null }),
+    api: async () => { posts += 1; return { chat_id: 93 }; },
+    chats: { open: async () => { opens += 1; } },
+    refresh: async () => { refreshes += 1; if (refreshes === 1) throw new Error("refresh rejected"); },
+    closeView: () => {},
+  };
+  const container = fixture.document.createElement("div");
+  fixture.document.body.append(container);
+  await createDirectiveView(sonder).render(container);
+  fillCreator(fixture.window, container);
+  click(container, '[data-creator-step="review"]');
+
+  await submit(fixture.window, container.querySelector("form"));
+  assert.deepEqual([posts, opens, refreshes], [1, 1, 1]);
+  assert.match(container.querySelector('[role="status"]')?.textContent || "", /opened.*retry refresh/i);
+  await submit(fixture.window, container.querySelector("form"));
+  assert.deepEqual([posts, opens, refreshes], [1, 1, 2]);
+  fixture.window.close();
+});
+
+test("Campaign Continue opens the active Sonder story and returns to story", async () => {
+  const fixture = installDomFixture();
+  const opened = [];
+  let closed = 0;
+  const sonder = {
+    state: () => ({ chatId: 27 }),
+    api: async () => campaignProjection(),
+    chats: { open: async (chatId) => { opened.push(chatId); } },
+    refresh: () => {},
+    closeView: () => {},
+  };
+  const container = fixture.document.createElement("div");
+  fixture.document.body.append(container);
+  await createDirectiveView(sonder, { onClose: () => { closed += 1; } }).render(container);
+
+  click(container, '[data-campaign-action="continue"]');
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(opened, [27]);
+  assert.equal(closed, 1);
   fixture.window.close();
 });
 
@@ -154,7 +273,7 @@ function campaignProjection() {
     chat_id: 27,
     campaign: { id: "ashes-of-peace", title: "Ashes of Peace", simulation_mode: "Exploration" },
     viewer: { name: "Avery Quill" },
-    ship: {},
+    ship: { name: "U.S.S. Breckenridge", class_name: "Intrepid-class" },
     mission: { id: "prelude-a-ship-underway", status: "active" },
     time: { stardate: 57300.4, clock_display: "16:42:00" },
     journey: { completed_count: 3 },
@@ -178,6 +297,19 @@ function setValue(window, control, value, eventType = "input") {
   assert.ok(control, "missing form control");
   control.value = value;
   control.dispatchEvent(new window.Event(eventType, { bubbles: true }));
+}
+
+function fillCreator(window, root) {
+  for (const [name, value] of Object.entries(PLAYER_VALUES)) {
+    setValue(window, root.querySelector(`[name="${name}"]`), value);
+  }
+  setValue(window, root.querySelector('[name="simulation_mode"]'), "Exploration", "change");
+}
+
+function dispatchKeyboard(window, target, key) {
+  const event = new window.KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+  target.dispatchEvent(event);
+  return event;
 }
 
 async function submit(window, form) {
