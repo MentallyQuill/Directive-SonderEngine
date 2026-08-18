@@ -4,8 +4,8 @@ const PUBLIC_RECORD_FIELDS = Object.freeze([
   ["affiliation", "Affiliation"],
   ["age", "Age"],
   ["birthplace", "Birthplace"],
-  ["service_background", "Service background"],
-  ["assignment_history", "Assignment history"],
+  ["serviceBackground", "Service background"],
+  ["assignmentHistory", "Assignment history"],
 ]);
 
 export function renderPeopleView(data = {}, state = {}) {
@@ -36,10 +36,12 @@ export function renderPeopleView(data = {}, state = {}) {
     const control = createElement("button", "people-row");
     control.type = "button";
     control.dataset.personId = String(person.id || "");
-    control.append(
+    const copy = createElement("span", "people-row-copy");
+    copy.append(
       appendText(createElement("strong"), literal(person.display_name, "Observed person")),
       appendText(createElement("span", "people-row-billet"), rosterRole(person)),
     );
+    control.append(copy);
     control.addEventListener("click", () => select(person.id));
     return control;
   }
@@ -102,10 +104,11 @@ function renderPersonDetail(person) {
   content.append(hero);
 
   let details = 0;
-  details += appendCopy(content, "Operational summary", domain.operational_summary);
-  details += appendCopy(content, "Public history", person.facts?.public_history);
-  details += appendCopy(content, "Assignment", domain.assignment);
-  details += appendCopy(content, "Duty status", domain.duty_status);
+  const renderedFacts = new Set();
+  details += appendCopy(content, "Operational summary", domain.operational_summary, renderedFacts);
+  details += appendCopy(content, "Public history", person.facts?.public_history, renderedFacts);
+  details += appendCopy(content, "Assignment", domain.assignment, renderedFacts);
+  details += appendCopy(content, "Duty status", domain.duty_status, renderedFacts);
   details += appendPublicRecord(content, domain.public_record);
   if (!details) {
     content.append(appendText(
@@ -116,10 +119,13 @@ function renderPersonDetail(person) {
   return content;
 }
 
-function appendCopy(container, label, value) {
+function appendCopy(container, label, value, renderedFacts) {
   if (!present(value)) return 0;
+  const fact = String(value).trim();
+  if (renderedFacts.has(fact)) return 0;
+  renderedFacts.add(fact);
   const section = createElement("section", "people-detail-block");
-  section.append(appendText(createElement("h3"), label), appendText(createElement("p"), value));
+  section.append(appendText(createElement("h3"), label), appendText(createElement("p"), fact));
   container.append(section);
   return 1;
 }

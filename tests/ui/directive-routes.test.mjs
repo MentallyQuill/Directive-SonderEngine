@@ -105,13 +105,15 @@ const PROJECTION = Object.freeze({
         player_text: {
           title: "Restore sensor confidence",
           situation: "The sensor team needs a clean calibration result.",
-          commandImpact: "Reliable readings improve bridge coordination.",
-          courseOfAction: "Complete the calibration and verification sweep.",
-          operationalRisk: "Uncertain contacts may consume response time.",
-          resolutionCriteria: "Record a verified long-range calibration.",
+          objective: "Complete the calibration and verification sweep.",
+          whyItMatters: "Reliable readings improve bridge coordination.",
+          operationalEffect: "Uncertain contacts may consume response time.",
         },
         computer_help: "Review the sensor work orders.",
-        phases: [{ id: "phase.calibrate", status: "available", label: "Calibration", summary: "Calibrate the array." }],
+        phases: [
+          { id: "phase.calibrate", status: "available", label: "Calibration", summary: "Calibrate the array." },
+          { id: "phase.verify", status: "available", label: "Verification", summary: "Verify the calibration result." },
+        ],
         current_phase: { id: "phase.calibrate", status: "available", label: "Calibration", summary: "Calibrate the array." },
       }],
       queued_count: 1,
@@ -141,8 +143,12 @@ const PROJECTION = Object.freeze({
         rank: "Captain",
         role: "Commanding Officer",
         department: "command",
-        public_record: { birthplace: "Kingston, Ontario, Earth" },
-        operational_summary: "Retains final legal command during the handover.",
+        public_record: {
+          birthplace: "Kingston, Ontario, Earth",
+          serviceBackground: "Science operations, diplomacy, executive command",
+          assignmentHistory: "Commanding officer since the Breckenridge's 2372 commission",
+        },
+        operational_summary: "Captain Whitaker commands the Breckenridge.",
         media: { kind: "crew.portrait.formal", alt: "Captain Mara Whitaker", variants: { detail: "/mara-detail.webp", thumb: "/mara-thumb.webp" } },
       },
     },
@@ -187,6 +193,18 @@ test("Mission renders the literal active record, objectives, transition, outcome
   fixture.window.close();
 });
 
+test("Mission renders an explicit unavailable state when Command Bearing is absent", () => {
+  const fixture = installDomFixture();
+  const view = renderMissionView({ ...PROJECTION, command_bearing: undefined });
+  fixture.document.body.append(view);
+
+  const bearing = view.querySelector(".directive-v1-command-bearing");
+  assert.match(bearing?.textContent || "", /Command Bearing unavailable\./);
+  assert.doesNotMatch(bearing?.textContent || "", /0 of 0|reserve earned/i);
+  assert.equal(bearing?.querySelectorAll(".directive-v1-command-bearing-pips span").length, 0);
+  fixture.window.close();
+});
+
 test("People orders recognized Directive crew before observed contacts and selects literal detail", () => {
   const fixture = installDomFixture();
   const state = {};
@@ -195,20 +213,28 @@ test("People orders recognized Directive crew before observed contacts and selec
 
   assert.match(view.className, /\bdirective-expanded-people\b/);
   const controls = [...view.querySelectorAll("[data-person-id]")];
+  assert.equal(view.querySelectorAll(".people-row > .people-row-copy").length, 3);
   assert.deepEqual(controls.map((control) => control.textContent.trim()), [
     "Mara WhitakerCaptain · Commanding Officer",
     "Priya NayarLieutenant Commander · Chief Science Officer",
     "an unfamiliar ensignObserved contact",
   ]);
   assert.equal(state.selectedPersonId, "11");
-  assert.match(view.querySelector(".people-detail")?.textContent || "", /Retains final legal command/);
+  assert.match(view.querySelector(".people-detail")?.textContent || "", /Science operations, diplomacy, executive command/);
+  assert.match(view.querySelector(".people-detail")?.textContent || "", /Commanding officer since the Breckenridge's 2372 commission/);
   assert.match(view.querySelector(".people-detail")?.textContent || "", /Kingston, Ontario, Earth/);
+  assert.equal(occurrences(view.querySelector(".people-detail")?.textContent || "", "Captain Whitaker commands the Breckenridge."), 1);
 
   controls[2].click();
   assert.equal(state.selectedPersonId, "body:unknown-1");
   assert.match(view.querySelector(".people-detail")?.textContent || "", /No additional public details are available\./);
   assert.doesNotMatch(view.textContent, /secret|psychology|personality|private history/i);
   assert.doesNotMatch(view.querySelector(".people-detail")?.textContent || "", /Starfleet|assignment|duty/i);
+
+  const rerendered = renderPeopleView(PROJECTION, state);
+  assert.equal(rerendered.querySelector('[data-person-id="body:unknown-1"]')?.getAttribute("aria-pressed"), "true");
+  assert.match(rerendered.querySelector(".people-detail")?.textContent || "", /an unfamiliar ensign/);
+  assert.match(rerendered.querySelector(".people-detail")?.textContent || "", /No additional public details are available\./);
   fixture.window.close();
 });
 
@@ -234,11 +260,39 @@ test("Ship renders literal vessel readiness, systems, work orders, and cohesion 
 
   const priority = view.querySelector('details[data-cohesion-issue-id="cohesion.sensor-calibration"]');
   assert.ok(priority);
+  assert.match(priority.className, /\bdirective-cohesion-disclosure\b/);
+  assert.doesNotMatch(priority.className, /\bship-task-detail\b/);
+  assert.equal(priority.hidden, false);
+  assert.equal(priority.open, true);
   assert.match(priority.textContent, /Restore sensor confidence/);
-  assert.match(priority.textContent, /Command Impact/);
+  assert.match(priority.textContent, /Objective/);
+  assert.match(priority.textContent, /Complete the calibration and verification sweep\./);
+  assert.match(priority.textContent, /Why It Matters/);
   assert.match(priority.textContent, /Reliable readings improve bridge coordination\./);
+  assert.match(priority.textContent, /Operational Effect/);
+  assert.match(priority.textContent, /Uncertain contacts may consume response time\./);
+  assert.match(priority.textContent, /Current phase/);
+  assert.match(priority.textContent, /Calibration · available/);
+  assert.match(priority.textContent, /Assignment phases/);
+  assert.match(priority.textContent, /Verification · available/);
+  assert.match(priority.textContent, /Verify the calibration result\./);
+  assert.match(priority.textContent, /Review the sensor work orders\./);
   assert.match(view.textContent, /1 additional assignment queued/);
   assert.match(view.textContent, /Stabilize power transfer/);
+  fixture.window.close();
+});
+
+test("Ship omits phase and computer-help disclosures when those literal fields are absent", () => {
+  const fixture = installDomFixture();
+  const data = structuredClone(PROJECTION);
+  delete data.ship.cohesion.issues[0].current_phase;
+  delete data.ship.cohesion.issues[0].phases;
+  delete data.ship.cohesion.issues[0].computer_help;
+  const view = renderShipView(data);
+  fixture.document.body.append(view);
+
+  const priority = view.querySelector('details[data-cohesion-issue-id="cohesion.sensor-calibration"]');
+  assert.doesNotMatch(priority?.textContent || "", /Current phase|Assignment phases|Computer help/i);
   fixture.window.close();
 });
 
@@ -290,4 +344,8 @@ function installDomFixture() {
   const window = new Window();
   globalThis.document = window.document;
   return { window, document: window.document };
+}
+
+function occurrences(value, needle) {
+  return String(value).split(needle).length - 1;
 }

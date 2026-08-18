@@ -114,7 +114,9 @@ function renderReference(title, records) {
 function renderCohesion(cohesion) {
   const section = createElement("section", "directive-v1-mission-section directive-v1-cohesion");
   section.append(appendText(createElement("h3"), "Cohesion priorities"));
-  for (const issue of cohesion.issues || []) section.append(renderIssue(issue));
+  for (const [index, issue] of (cohesion.issues || []).entries()) {
+    section.append(renderIssue(issue, index === 0));
+  }
   if (!(cohesion.issues || []).length) {
     section.append(appendText(createElement("p"), "No command assignments require attention."));
   }
@@ -140,9 +142,10 @@ function renderCohesion(cohesion) {
   return section;
 }
 
-function renderIssue(issue) {
-  const details = createElement("details", "ship-task-detail");
+function renderIssue(issue, open) {
+  const details = createElement("details", "directive-cohesion-disclosure");
   details.dataset.cohesionIssueId = String(issue.id || "");
+  details.open = open;
   const summary = createElement("summary");
   summary.append(
     appendText(createElement("strong"), literal(issue.player_text?.title, "Command assignment")),
@@ -151,16 +154,53 @@ function renderIssue(issue) {
   details.append(summary);
   const fields = [
     ["Situation", issue.player_text?.situation],
-    ["Command Impact", issue.player_text?.commandImpact],
-    ["Course of Action", issue.player_text?.courseOfAction],
-    ["Operational Risk", issue.player_text?.operationalRisk],
-    ["Resolution Criteria", issue.player_text?.resolutionCriteria],
+    ["Objective", issue.player_text?.objective],
+    ["Why It Matters", issue.player_text?.whyItMatters],
+    ["Operational Effect", issue.player_text?.operationalEffect],
   ];
   for (const [label, value] of fields) {
     if (!present(value)) continue;
     const block = createElement("section", "ship-task-detail-section");
     block.append(appendText(createElement("h4"), label), appendText(createElement("p"), value));
     details.append(block);
+  }
+  if (issue.current_phase) {
+    const current = createElement("section", "ship-task-detail-section");
+    current.append(
+      appendText(createElement("h4"), "Current phase"),
+      appendText(
+        createElement("p", "ship-task-next-step"),
+        [issue.current_phase.label, issue.current_phase.status].filter(present).join(" · "),
+      ),
+    );
+    if (present(issue.current_phase.summary)) {
+      current.append(appendText(createElement("p"), issue.current_phase.summary));
+    }
+    details.append(current);
+  }
+  if (Array.isArray(issue.phases) && issue.phases.length) {
+    const phases = createElement("section", "ship-task-detail-section");
+    phases.append(appendText(createElement("h4"), "Assignment phases"));
+    const list = createElement("ul", "directive-work");
+    for (const phase of issue.phases) {
+      const item = createElement("li");
+      item.append(appendText(
+        createElement("strong"),
+        [phase.label, phase.status].filter(present).join(" · "),
+      ));
+      if (present(phase.summary)) item.append(appendText(createElement("span"), phase.summary));
+      list.append(item);
+    }
+    phases.append(list);
+    details.append(phases);
+  }
+  if (present(issue.computer_help)) {
+    const help = createElement("section", "ship-task-detail-section");
+    help.append(
+      appendText(createElement("h4"), "Computer help"),
+      appendText(createElement("p", "ship-task-computer-help"), issue.computer_help),
+    );
+    details.append(help);
   }
   return details;
 }

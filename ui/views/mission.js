@@ -95,6 +95,17 @@ function renderTransition(transition) {
 
 function renderBearing(bearing) {
   const section = createElement("section", "directive-v1-command-bearing");
+  const available = Number.isInteger(bearing.balance)
+    && bearing.balance >= 0
+    && Number.isInteger(bearing.capacity)
+    && bearing.capacity > 0;
+  if (!available) {
+    section.append(
+      appendText(createElement("span", "directive-v1-kicker"), "Command Bearing"),
+      appendText(createElement("p"), "Command Bearing unavailable."),
+    );
+    return section;
+  }
   const copy = createElement("div");
   copy.append(
     appendText(createElement("span", "directive-v1-kicker"), "Command Bearing"),

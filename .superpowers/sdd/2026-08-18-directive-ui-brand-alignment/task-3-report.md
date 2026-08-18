@@ -73,3 +73,57 @@ exit 0
 
 - The current player projection exposes a mission id, revision, status, objectives, outcomes, and transition data, but no authored top-level mission title or briefing summary. The workspace therefore presents the literal mission id and does not infer a friendly title. This is not a Task 3 blocker; adding authored title/summary later would require an explicit player-safe projection contract change.
 - Responsive geometry, minimum control sizing, media behavior, and final CSS parity remain Task 4 browser-proof responsibilities.
+
+## Fix round 1: production-shape and disclosure corrections
+
+Review identified five contract mismatches and two smaller continuity issues. The correction stayed within the Task 3-owned route files and test fixture.
+
+### RED evidence
+
+The literal fixture and assertions were changed before production code to use the actual camelCase crew public-record keys and the production cohesion `player_text` shape, while adding disclosure visibility, absent-Bearing, deduplication, and rerendered-selection checks.
+
+```text
+node --test tests/ui/directive-routes.test.mjs
+tests 7, pass 4, fail 3
+```
+
+The three expected failures were:
+
+1. Missing Bearing still rendered `0 of 0 available` and synthesized reserve copy instead of an unavailable state.
+2. People roster buttons contained no `.people-row-copy` wrappers.
+3. Cohesion priority disclosure still used the responsive-hidden `.ship-task-detail` class.
+
+The Ship test stopped at the disclosure-class assertion; the same pre-production test also required the actual `objective`, `whyItMatters`, and `operationalEffect` fields plus literal current-phase, phase-list, and computer-help output.
+
+### GREEN evidence
+
+After the minimal renderer corrections:
+
+```text
+node --test tests/ui/directive-routes.test.mjs
+tests 7, pass 7, fail 0
+```
+
+Focused integration gate:
+
+```text
+node --test tests/ui/directive-routes.test.mjs tests/ui/directive-campaign.test.mjs tests/ui/directive-shell.test.mjs
+tests 15, pass 15, fail 0
+```
+
+Python UI contract gate:
+
+```text
+py -3.13 -m pytest tests/ui --basetemp .tmp/pytest-task3-fix1
+5 passed in 0.14s
+```
+
+### Corrections and self-review
+
+- Crew public records now read literal `serviceBackground` and `assignmentHistory` values from the nested `public_record` object.
+- Roster buttons now emit the authoritative `.people-row-copy` structure; selected observed-contact state survives a renderer rerun with the same ephemeral state object.
+- Equal `operational_summary` and `facts.public_history` values render once, while distinct facts remain separate.
+- Cohesion assignments render production `situation`, `objective`, `whyItMatters`, and `operationalEffect` fields. `current_phase`, `phases`, and `computer_help` appear only when those projection fields are present.
+- Native cohesion disclosures use `.directive-cohesion-disclosure`, remain unhidden in the DOM, and do not inherit the responsive `.ship-task-detail { display: none; }` rule.
+- Missing Command Bearing now renders `Command Bearing unavailable.` with no synthetic balance, reserve claim, or pips.
+- Self-review found no remaining legacy cohesion keys, snake_case public-record keys, or hidden `ship-task-detail` disclosure class in Task 3 production code. `git diff --check` was clean.
