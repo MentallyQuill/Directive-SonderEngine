@@ -6,10 +6,10 @@ This migration is based on these exact, remotely verified revisions:
 
 - Directive: `06b7e3160a6c1fefe2134e5cac926843b5a0c1ee` (`main`, `MentallyQuill/Directive`)
 - Sonder Engine design baseline: `a79443b10a0872c1a3ffb3e9840232b1fd622209` (`main`, `N0819/Sonder_Engine`)
-- Sonder Engine final verification revision: `ba621a8211b24a5a516c3ac2b1ddbce0ebe93a53`, a direct descendant of the design baseline that arrived concurrently during the migration run
+- Sonder Engine final verification revision: `418ab5b469ebd8682157646229ae7e5bc7aa078b` (`alpha9.5`), a direct descendant of the design baseline that arrived concurrently during the migration run
 - Directive-SonderEngine: empty `main` repository before this migration
 
-The Directive reference checkout had a pre-existing modified `debug.log` and an untracked `.codex-remote-attachments/` directory. The Sonder checkout had an untracked `docs/design/DIRECTIVE_HARDENING_REPORT.md`. They are read-only inputs and are not part of this migration. No migration commit was made in either reference repository; the final host regression ran again after Sonder advanced from the baseline to `ba621a82`.
+The Directive reference checkout had a pre-existing modified `debug.log` and an untracked `.codex-remote-attachments/` directory. The Sonder checkout had an untracked `docs/design/DIRECTIVE_HARDENING_REPORT.md`. They are read-only inputs and are not part of this migration. No migration commit was made in either reference repository; the final host regression ran again after Sonder advanced from the baseline to `418ab5b4`.
 
 ## Product shape
 
@@ -115,7 +115,7 @@ Sonder's simulation clock is the sole generic time authority. Directive owns the
 
 Directive uses a Sonder ES-module entry and registered full-window view, toolbar launcher, settings section, and settlement step renderer. The LCARS application currently provides Campaign, Mission, Ship, Crew, and People routes. Campaign creation opens the resulting story through Sonder's declared chat lifecycle. Sonder retains its native controls for branching, rerolling, and narration variants rather than Directive duplicating them.
 
-All gameplay data is fetched from Directive routes that assemble player-safe DTOs. Presentation state never writes campaign truth. The implemented surface has native button focus rings, reduced-motion rules, and mobile/desktop layouts. Live browser geometry and focus-restoration proof remains outstanding because the available browser-control runtime failed before browser binding during this migration run.
+All gameplay data is fetched from Directive routes that assemble player-safe DTOs. Presentation state never writes campaign truth. The implemented surface has native button focus rings, reduced-motion rules, and mobile/desktop layouts. Live Playwright proof against current Sonder covers all five routes at 1440×900 and 390×844, including media loading, Directive-owned overflow, keyboard focus entry and restoration, and reduced motion. Focus restoration resolves the current host launcher by its stable `data-ext-button` id because Sonder may rebuild the toolbar while the view is open.
 
 ## Legacy data
 

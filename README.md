@@ -32,8 +32,8 @@ provider layer, checkpoint store, or world timeline beside Sonder.
   branch carriage, and portable export/import of Directive state and documents.
 
 Generated cohesion scheduling, people-event authoring, expanded creator assist,
-adversarial secret-safety coverage, browser geometry, and full branch/replay
-round trips remain active migration work. See
+adversarial secret-safety coverage, and full branch/replay round trips remain
+active migration work. See
 [`docs/MIGRATION_STATUS.md`](docs/MIGRATION_STATUS.md) and
 [`docs/MIGRATION_RESPONSIBILITY_MATRIX.md`](docs/MIGRATION_RESPONSIBILITY_MATRIX.md).
 
@@ -55,7 +55,7 @@ The integration suite stages this extension under a temporary directory named
 
 - Directive: `06b7e3160a6c1fefe2134e5cac926843b5a0c1ee`
 - Sonder Engine design baseline: `a79443b10a0872c1a3ffb3e9840232b1fd622209`
-- Sonder Engine final verification: `ba621a8211b24a5a516c3ac2b1ddbce0ebe93a53`
+- Sonder Engine final verification: `418ab5b469ebd8682157646229ae7e5bc7aa078b`
 
 The reference checkouts are read-only inputs. No push, publication, deployment,
 or pull request is part of this migration workspace.

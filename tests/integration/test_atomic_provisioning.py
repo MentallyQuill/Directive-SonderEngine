@@ -169,7 +169,9 @@ def test_current_sonder_loads_and_provisions_the_complete_story(live_sonder):
         "package_id": PACKAGE_ID,
         "package_version": PACKAGE_VERSION,
     }
-    assert view["schema"] == 2
+    # Schema 3 re-keys anonymous presence ids per viewer; Directive only joins
+    # recognized crew by their stable Sonder ids, so both host shapes apply.
+    assert view["schema"] in {2, 3}
     assert view["story"]["name"] == "Ashes of Peace"
     assert view["player"]["name"] == "Sam Vickers"
     assert view["scene"]["location"] == "U.S.S. Breckenridge"

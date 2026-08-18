@@ -15,7 +15,7 @@ const PLAYER_FIELDS = [
   ["flaw", "Flaw", "Guarded"]
 ];
 
-export function createDirectiveView(sonder) {
+export function createDirectiveView(sonder, { onClose = () => sonder.closeView() } = {}) {
   let route = "campaign";
   return {
     id: "directive",
@@ -27,7 +27,7 @@ export function createDirectiveView(sonder) {
       await draw();
 
       async function draw() {
-        shell.replaceChildren(header(sonder));
+        shell.replaceChildren(header(onClose));
         const chatId = sonder.state().chatId;
         if (!chatId) {
           shell.append(startScreen(sonder));
@@ -37,7 +37,7 @@ export function createDirectiveView(sonder) {
         try {
           projection = await sonder.api("GET", `/api/extensions/directive/x/projection?chat_id=${encodeURIComponent(chatId)}`);
         } catch (error) {
-          shell.append(emptyStory(sonder));
+          shell.append(emptyStory(onClose));
           return;
         }
         shell.querySelector(".directive-close").before(chronometer(projection.time));
@@ -58,12 +58,12 @@ export function createDirectiveView(sonder) {
   };
 }
 
-function header(sonder) {
+function header(onClose) {
   return el("header", { class: "directive-header" },
     el("div", { class: "directive-brand" },
       el("span", { class: "directive-brand__eyebrow" }, "STARFLEET COMMAND CAMPAIGN"),
       el("strong", { class: "directive-brand__title" }, "DIRECTIVE")),
-    el("button", { class: "directive-close", type: "button", "aria-label": "Close Directive", onclick: () => sonder.closeView() }, "Return to story"));
+    el("button", { class: "directive-close", type: "button", "aria-label": "Close Directive", onclick: onClose }, "Return to story"));
 }
 
 function chronometer(time) {
@@ -110,12 +110,12 @@ function startScreen(sonder) {
   return form;
 }
 
-function emptyStory(sonder) {
+function emptyStory(onClose) {
   return el("section", { class: "directive-empty" },
     el("p", { class: "directive-kicker" }, "NO DIRECTIVE CAMPAIGN HERE"),
     el("h1", {}, "This story belongs to Sonder"),
     el("p", {}, "Directive only opens campaign state it provisioned. Return to Stories to create or open Ashes of Peace."),
-    el("button", { class: "directive-primary", onclick: () => sonder.closeView() }, "Return to story"));
+    el("button", { class: "directive-primary", onclick: onClose }, "Return to story"));
 }
 
 function routeView(route, data) {

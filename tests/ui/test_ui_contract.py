@@ -1,7 +1,16 @@
 from pathlib import Path
+import subprocess
 
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_focus_management_behavior():
+    subprocess.run(
+        ["node", "--test", str(ROOT / "tests" / "ui" / "focus-management.test.mjs")],
+        cwd=ROOT,
+        check=True,
+    )
 
 
 def test_ui_uses_only_sonder_mounts_and_extension_routes():

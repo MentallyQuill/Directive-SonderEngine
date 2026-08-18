@@ -16,7 +16,7 @@
 |---|---|
 | Directive revision | `06b7e3160a6c1fefe2134e5cac926843b5a0c1ee` |
 | Sonder design baseline | `a79443b10a0872c1a3ffb3e9840232b1fd622209` |
-| Sonder final verification | `ba621a8211b24a5a516c3ac2b1ddbce0ebe93a53` (descendant that arrived concurrently during the run) |
+| Sonder final verification | `418ab5b469ebd8682157646229ae7e5bc7aa078b` (`alpha9.5`, descendant that arrived concurrently during the run) |
 | Target starting state | Empty Git repository, no commits |
 | Playable Directive scope | Ashes of Peace; other campaigns remain disabled previews |
 | Legacy runtime | Hard cutover; no SillyTavern compatibility runtime |
@@ -36,12 +36,12 @@
 | Time and Stardate | Verified | Host-clock derivation, rollover, projection, and narration non-authority tests |
 | People and crew joins | In progress | Seven stable-id joins and public allowlist pass; runtime-observed people events/dossier authoring remain |
 | Aggregate player-safe projections | Verified | Mission, journey, ship, time, Bearing, crew and media allowlists; hidden/private omission tests |
-| LCARS UI and interactions | Implemented | ES-module host asset serving, syntax, mount, route, mobile CSS, focus-ring and reduced-motion contracts pass; live browser binding failed before visual geometry proof |
+| LCARS UI and interactions | Verified | ES-module host asset serving, five routes, desktop/mobile geometry, media, keyboard focus transfer/restoration, focus rings and reduced motion pass in a live Sonder browser |
 | Campaign lifecycle/settings/notices | In progress | Atomic start, host open, simulation mode selection and settings copy implemented; notices and campaign management polish remain |
 | Branch/replay/checkpoint/export | In progress | Current-Sonder checkpoint rewind, branch, and portable export/import preserve Directive state, frame state, documents and provenance; completed-turn reroll proof remains |
 | Optional one-way legacy importer | Not assessed | Separate product decision; not a native-runtime dependency |
 | SillyTavern removal audit | In progress | Foundation runtime audit is clean; later runtime/UI phases remain |
-| Full clean regression | In progress | 101 Python tests, compileall and JS syntax pass; clean-checkout and browser gates remain |
+| Full clean regression | In progress | 104 Python tests, compileall, JS syntax and live browser gates pass; clean-checkout proof remains |
 
 ## Verified current Sonder facilities
 
@@ -60,13 +60,13 @@ No upstream Sonder blocker is currently proven. Historical gap reports under `do
 
 ## Latest executable evidence
 
-- `C:\Python313\python.exe -m pytest -q --basetemp=.tmp/pytest-ui-full --disable-warnings`: **101 passed** (150 warnings from the pinned Sonder host's current Pydantic deprecations).
+- `C:\Python313\python.exe -m pytest -q --basetemp=.tmp/pytest-focus-full-2 --disable-warnings`: **104 passed** (150 warnings from the pinned Sonder host's current Pydantic deprecations).
 - Current-host integration covers discovery/activation, route dispatch, archive import/readback, an unchanged database hash on invalid input, player projection, fatal player-dialogue correction without state mutation, exact-turn settlement commit, checkpoint rewind, branch carriage, portable export/import, and ES-module/CSS serving.
 - `C:\Python313\python.exe -m compileall -q directive tests`: passed.
 - `node --check ui/app.js` and `node --check ui/index.js`: passed.
 - Runtime forbidden-dependency scan has no SillyTavern/provider/parallel-timeline imports; only the authored-source rejection list names retired countdown keys.
 - All 37 assets referenced by the Ashes package were copied with zero SHA-256 mismatches from the pinned Directive checkout.
-- Live browser verification is not claimed: browser control failed during setup with `Trusted RPC dependency must resolve within a configured trusted code path` before any browser was selected.
+- Live Playwright verification against current Sonder passed Campaign, Mission, Ship, Crew and People at 1440×900 and 390×844 with no Directive overflow, broken media, console errors, page errors or failed requests. Keyboard launch moves focus into the view, close restores it to the current launcher after Sonder replaces the toolbar node, and reduced-motion styles resolve to effectively zero duration. Sonder's off-canvas mobile sidebar contributes 48 px of document overflow outside `.directive-app`; the Directive surface itself remains flush at zero overflow.
 
 ## Decisions and non-blockers
 

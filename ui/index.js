@@ -1,12 +1,35 @@
 import { createDirectiveView } from "./app.js";
 
+export function createDirectiveFocusController(sonder, root = document) {
+  let returnTarget = null;
+  return {
+    open() {
+      returnTarget = root.activeElement;
+      const opened = sonder.openView("directive");
+      if (!opened) return false;
+      schedule(root, () => root.querySelector(".directive-close")?.focus({ preventScroll: true }));
+      return true;
+    },
+    close() {
+      sonder.closeView();
+      schedule(root, () => {
+        const target = returnTarget?.isConnected
+          ? returnTarget
+          : root.querySelector('[data-ext-button="directive-launch"]');
+        target?.focus?.({ preventScroll: true });
+      });
+    }
+  };
+}
+
 export function register(sonder) {
-  sonder.registerView(createDirectiveView(sonder));
+  const focus = createDirectiveFocusController(sonder);
+  sonder.registerView(createDirectiveView(sonder, { onClose: () => focus.close() }));
   sonder.registerTopBarButton({
     id: "directive-launch",
     icon: "⌁",
     title: "Directive",
-    onClick: () => sonder.openView("directive")
+    onClick: () => focus.open()
   });
   sonder.registerSettingsSection({
     id: "directive-about",
@@ -29,4 +52,10 @@ function node(tag, className, text) {
   if (className) value.className = className;
   if (text !== undefined) value.textContent = text;
   return value;
+}
+
+function schedule(root, callback) {
+  const frame = root?.defaultView?.requestAnimationFrame || globalThis.requestAnimationFrame;
+  if (frame) frame.call(root?.defaultView || globalThis, callback);
+  else queueMicrotask(callback);
 }
