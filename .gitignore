@@ -11,4 +11,4 @@ test-results/
 engine.db*
 .tmp/
 artifacts/
-
+.worktrees/
