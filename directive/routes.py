@@ -2,12 +2,20 @@
 
 from .campaign.compiler import PlayerSetup, ProvisioningError, compile_ashes_archive
 from .campaign.source import load_ashes_source
+from .projection.player import create_player_projection
+from .settlement import service as settlement
 from .state.contracts import PACKAGE_ID, PACKAGE_VERSION
 
 
 def register(api):
     """Register Directive only through the public Sonder extension facade."""
     api.add_route("/start", lambda request: _start(api, request), methods=("POST",))
+    api.add_route(
+        "/projection",
+        lambda request: _projection(api, request),
+        methods=("GET",),
+    )
+    settlement.register(api)
 
 
 def _start(api, request):
@@ -27,3 +35,9 @@ def _start(api, request):
             "package_version": PACKAGE_VERSION,
         },
     }
+
+
+def _projection(api, request):
+    if request.chat_id is None:
+        raise ValueError("chat_id is required")
+    return create_player_projection(api, request.chat_id)

@@ -50,6 +50,18 @@ class RecordingAPI:
         self.provision_calls.append((archive, kwargs))
         return {"chat_id": 42, "name": "Ashes of Peace", "schema": 2}
 
+    def add_model_lane(self, name, **kwargs):
+        return f"ext:directive:{name}"
+
+    def add_stage(self, *args, **kwargs):
+        pass
+
+    def add_commit_domain(self, *args, **kwargs):
+        pass
+
+    def on_director_result(self, *args, **kwargs):
+        pass
+
 
 def test_start_route_provisions_once_with_every_turn_zero_value():
     api = RecordingAPI()
@@ -159,6 +171,18 @@ def test_current_sonder_loads_and_provisions_the_complete_story(live_sonder):
     assert api.documents(chat_id).get("package/campaign")["manifest"]["id"] == PACKAGE_ID
     assert api.documents(chat_id).get("player/profile")["name"] == "Sam Vickers"
 
+    projection = extension_runtime.dispatch_route(
+        "directive", "GET", "/projection", query={"chat_id": str(chat_id)}
+    )
+    assert projection["kind"] == "directive.playerProjection.v1"
+    assert len(projection["people"]) == 7
+    assert {item["directive"]["crew_id"] for item in projection["people"]} == {
+        "mara-whitaker", "kieran-vale", "priya-nayar", "hadrik-bronn",
+        "rowan-saye", "miriam-sato", "imani-cross",
+    }
+    assert "narrationGuide" not in repr(projection)
+    assert "psychology" not in repr(projection)
+
 
 def test_current_sonder_rejects_invalid_turn_zero_data_without_a_database_write(
     live_sonder,
@@ -178,3 +202,62 @@ def test_current_sonder_rejects_invalid_turn_zero_data_without_a_database_write(
 
     assert after == before
     assert db.q("SELECT COUNT(*) AS count FROM chats", one=True)["count"] == 0
+
+
+def test_current_sonder_commit_domain_advances_exactly_the_bound_turn(
+    live_sonder,
+):
+    extension_runtime, api, _db, _path = live_sonder
+    result = extension_runtime.dispatch_route(
+        "directive", "POST", "/start", body=player_payload()
+    )
+    chat_id = result["chat_id"]
+    frame = api.frame_state(chat_id).get()
+    resolve = {
+        "resolved_event": "Whitaker and Vickers settle the command handover terms.",
+        "state_diff": {},
+    }
+    from directive.settlement.service import PROPOSAL_KIND, _hash
+
+    source_hash = _hash(resolve)
+    proposal = {
+        "kind": PROPOSAL_KIND,
+        "rejected": [],
+        "claims": [{
+            "claimId": "claim.integration-handover",
+            "policyId": "policy.prelude.command-handover-terms-settled",
+            "claimType": "eventOccurred",
+            "targetId": "event.prelude.command-handover-terms-settled",
+            "evidenceKey": (
+                f"{frame['mission']['branchId']}|701|{source_hash}|"
+                "eventOccurred|event.prelude.command-handover-terms-settled"
+            ),
+            "sourceTurnId": "701",
+            "sourceHash": source_hash,
+            "sourceRole": "adjudicator",
+        }],
+    }
+
+    class Value:
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
+
+    class Context:
+        chat = Value(id=chat_id)
+        turn = Value(id=701, idx=1, frame_id=None)
+        warnings = []
+        def get(self, key, default=None):
+            return {
+                "director_resolve": resolve,
+                "ext:directive:settlement": proposal,
+            }.get(key, default)
+        def add_warning(self, message):
+            self.warnings.append(message)
+
+    results = {}
+    extension_runtime.run_commit_domains(Context(), results)
+
+    committed = api.frame_state(chat_id).get()
+    assert committed["mission"]["revision"] == 1
+    assert "event.prelude.command-handover-terms-settled" in committed["mission"]["events"]
+    assert results["ext:directive:settlement"]["applied"] == 1

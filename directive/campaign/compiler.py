@@ -333,6 +333,9 @@ def compile_ashes_archive(
         },
         "world": {
             "scene": _scene(player),
+            "known": {
+                player.name: [str(officer["name"]) for officer in officers],
+            },
             "simulation_clock": {
                 "elapsed_seconds": 0.0,
                 "display": "08:30:00",

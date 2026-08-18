@@ -101,6 +101,10 @@ def test_opening_scene_and_clock_are_playable_without_a_bootstrap_step():
         "display": "08:30:00",
         "time_scale": "scene",
     }
+    assert world["known"]["Sam Vickers"] == [
+        "Mara Whitaker", "Kieran Vale", "Priya Nayar", "Hadrik Bronn",
+        "Rowan Saye", "Miriam Sato", "Imani Cross",
+    ]
 
 
 def test_bundle_contains_every_atomic_provisioning_argument():
