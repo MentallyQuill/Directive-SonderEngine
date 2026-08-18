@@ -1,0 +1,464 @@
+{
+  "manifest": {
+    "kind": "directive.campaignPackage.v1",
+    "schemaVersion": 1,
+    "id": "directive:campaign-package:breckenridge-ashes-of-peace",
+    "slug": "breckenridge-ashes-of-peace",
+    "title": "Ashes of Peace",
+    "version": "0.3.0-pre-alpha.2",
+    "status": "v1-native",
+    "bundled": true,
+    "openingMissionId": "prelude-a-ship-underway",
+    "openingMinuteOfDay": 510
+  },
+  "campaign": {
+    "id": "ashes-of-peace",
+    "title": "Ashes of Peace",
+    "theater": "Asterion Reach",
+    "openingStardate": 53068.4,
+    "openingYear": 2376,
+    "highConcept": "The war is over, but peace in the Asterion Reach depends on who controls Starfleet's voice, who receives relief, and whose evidence survives. The newly refit U.S.S. Breckenridge enters that fracture with an incoming executive officer and a command team still learning how to trust one another.",
+    "openingMessage": "Yesterday morning, your shuttle rendezvoused with the U.S.S. Breckenridge while the newly refitted ship held at impulse beyond Mars. The docking collar settled with a muted thump, and the first open hatch revealed fresh bulkhead panels, old deck plating, and a crew still learning the shape of its ship after four months in the yards.\n\nAn operations yeoman showed you to the executive officer’s cabin. Four PADDs waited on the desk: your transfer orders, senior-staff dossiers, the refit and readiness reports, and Starfleet’s briefing on the Asterion Reach. The hours that followed passed between those files and a first walk through the Breckenridge—enough time to see where the official reports and the lived-in ship did not quite agree.\n\nNow it is 0830 the following morning. The Breckenridge is underway, and the softer chime of Captain Mara Whitaker’s ready room waits beside your hand. The formal command handover is on the other side of the door.",
+    "openingContext": {
+      "continuitySummary": "The player arrived aboard the U.S.S. Breckenridge by shuttle the previous morning, was shown to the executive officer’s cabin, and received PADDs containing transfer orders, senior-staff dossiers, refit and readiness reports, and the Asterion Reach briefing. The player spent the intervening day reviewing those materials and seeing the newly refitted ship firsthand.",
+      "firstPlayableScene": "At 0830 the following morning, the player is outside Captain Mara Whitaker’s ready room before their first personal meeting and formal command handover.",
+      "firstSceneGuidance": [
+        "Whitaker greets the player by name and introduces herself properly before discussing command business.",
+        "Whitaker offers a seat and coffee or another ordinary professional courtesy.",
+        "Whitaker makes brief, genuine conversation about the shuttle trip, the player’s first impressions, or her decision to request the player for the assignment.",
+        "Leave room for the player to answer and establish their own social posture before Whitaker changes subjects.",
+        "In the first reply inside the ready room, stop after the greeting, courtesy, and one conversational question or invitation; Whitaker does not pivot into business in that same reply.",
+        "Do not mention readiness problems, crew conflicts, the Asterion Reach, flight plans, mission details, reports, command expectations, or the handover terms until the player has answered that conversational opening.",
+        "Transition naturally into the command handover only after a human conversational rhythm is established; do not frame the meeting as an interrogation, wartime emergency, or immediate mission briefing."
+      ]
+    }
+  },
+  "ship": {
+    "id": "uss-breckenridge",
+    "name": "U.S.S. Breckenridge",
+    "class": "Intrepid-class",
+    "affiliation": "Starfleet",
+    "registry": "NCC-74656",
+    "openingStardate": 53068.4,
+    "openingCondition": "Returned to service after a four-month repair and modernization period at Utopia Planitia; certified for service with upgraded systems still requiring integrated validation under sustained deployment conditions.",
+    "commandStructure": {
+      "commandingOfficer": "mara-whitaker",
+      "playerBillet": "Executive Officer",
+      "playerRank": "Commander",
+      "captainRetainsFinalAuthority": true
+    }
+  },
+  "crew": {
+    "senior": [
+      {
+        "id": "mara-whitaker",
+        "name": "Mara Whitaker",
+        "rank": "Captain",
+        "billet": "Commanding Officer",
+        "species": "Human",
+        "packageRole": "Strategic authority, mentor, and final legal command"
+      },
+      {
+        "id": "player-commander",
+        "name": "Player-created Commander",
+        "rank": "Commander",
+        "billet": "Executive Officer",
+        "species": "Player-defined",
+        "packageRole": "Principal mission commander"
+      },
+      {
+        "id": "hadrik-bronn",
+        "name": "Hadrik Bronn",
+        "rank": "Lieutenant Commander",
+        "billet": "Chief Tactical and Security Officer",
+        "species": "Tellarite",
+        "packageRole": "Preparedness, discipline, and operational scrutiny"
+      },
+      {
+        "id": "miriam-sato",
+        "name": "Miriam Sato",
+        "rank": "Commander",
+        "billet": "Chief Medical Officer",
+        "species": "Human",
+        "packageRole": "Medical reality, bioethics, and honest cost"
+      },
+      {
+        "id": "imani-cross",
+        "name": "Imani Cross",
+        "rank": "Lieutenant Commander",
+        "billet": "Chief Engineer",
+        "species": "Human",
+        "packageRole": "Technical integrity and long-term consequence"
+      },
+      {
+        "id": "rowan-saye",
+        "name": "Rowan Saye",
+        "rank": "Lieutenant Commander",
+        "billet": "Chief Science Officer",
+        "species": "Human",
+        "packageRole": "Evidentiary rigor and institutional skepticism"
+      },
+      {
+        "id": "kieran-vale",
+        "name": "Kieran Vale",
+        "rank": "Lieutenant",
+        "billet": "Flight Control Officer",
+        "species": "Human",
+        "packageRole": "Ambition, mentorship, and controlled risk"
+      },
+      {
+        "id": "priya-nayar",
+        "name": "Priya Nayar",
+        "rank": "Lieutenant",
+        "billet": "Operations Officer",
+        "species": "Human",
+        "packageRole": "Coordination, informal influence, and ethical boundaries"
+      }
+    ]
+  },
+  "characterCreation": {
+    "campaignContext": {
+      "campaignTitle": "Ashes of Peace",
+      "eraLabel": "2376, Post-Dominion War",
+      "currentDateOrStardate": "Stardate 53068.4",
+      "serviceOrFaction": "Starfleet",
+      "shipName": "U.S.S. Breckenridge",
+      "shipClass": "Intrepid-class",
+      "missionProfile": "Postwar reconstruction, relief coordination, diplomatic support, patrol, survey, and investigation in the Asterion Reach.",
+      "playerRoleRule": "Locked role: incoming permanent Commander and Executive Officer, serving as principal mission commander under Captain Mara Whitaker."
+    },
+    "roleMode": "lockedRole",
+    "lockedRole": {
+      "id": "breckenridge-incoming-xo",
+      "rank": "Commander",
+      "billet": "Executive Officer",
+      "roleLabel": "Incoming permanent XO",
+      "shipId": "uss-breckenridge",
+      "shipName": "U.S.S. Breckenridge",
+      "captainId": "mara-whitaker",
+      "captainName": "Captain Mara Whitaker",
+      "commandAuthority": "Principal mission commander and coordinator of shipboard operations.",
+      "captainAuthorityBoundary": "Captain Whitaker retains final legal command and may approve, refuse, or counteroffer major mission deviations."
+    },
+    "flow": {
+      "steps": ["identity", "service", "personality", "review"],
+      "targetCompletionMinutes": { "min": 3, "max": 5 },
+      "mobileFirst": true,
+      "reviewLabel": "Review and Begin"
+    },
+    "requiredFields": [
+      "name",
+      "pronounsOrAddress",
+      "species",
+      "ageBand",
+      "appearance",
+      "careerBackground",
+      "formativeExperience",
+      "assignmentReason",
+      "insightTrait",
+      "connectionTrait",
+      "executionTrait",
+      "flaw"
+    ],
+    "optionalFields": [
+      "firstImpression",
+      "mustBeTrueFact",
+      "additionalGenerationNote",
+      "openThread"
+    ],
+    "ageBands": [
+      { "id": "young-for-role", "label": "Young for the role" },
+      { "id": "mid-career", "label": "Mid-career" },
+      { "id": "experienced", "label": "Experienced" },
+      { "id": "late-career", "label": "Late-career" }
+    ],
+    "allowedSpecies": [
+      { "id": "human", "label": "Human" },
+      { "id": "vulcan", "label": "Vulcan" },
+      { "id": "bajoran", "label": "Bajoran" },
+      { "id": "betazoid", "label": "Betazoid" },
+      { "id": "trill", "label": "Trill" },
+      { "id": "andorian", "label": "Andorian" },
+      { "id": "tellarite", "label": "Tellarite" },
+      { "id": "bolian", "label": "Bolian" },
+      { "id": "custom-federation-species", "label": "Custom Federation species" }
+    ],
+    "careerBackgrounds": [
+      { "id": "command-administration", "label": "Command and administration" },
+      { "id": "operations-logistics", "label": "Operations and logistics" },
+      { "id": "tactical-security", "label": "Tactical and security" },
+      { "id": "flight-navigation", "label": "Flight and navigation" },
+      { "id": "science-exploration", "label": "Science and exploration" },
+      { "id": "engineering-systems", "label": "Engineering and systems" },
+      { "id": "medical-humanitarian", "label": "Medical and humanitarian service" },
+      { "id": "diplomacy-first-contact", "label": "Diplomacy and first contact" },
+      { "id": "intelligence-strategic-analysis", "label": "Intelligence and strategic analysis" }
+    ],
+    "formativeExperiences": [
+      { "id": "dominion-war-fleet-service", "label": "Dominion War fleet service" },
+      { "id": "disaster-relief-evacuation", "label": "Disaster relief and evacuation" },
+      { "id": "frontier-border-service", "label": "Frontier or border service" },
+      { "id": "convoy-logistics-duty", "label": "Convoy and logistics duty" },
+      { "id": "deep-space-exploration", "label": "Deep-space exploration" },
+      { "id": "first-contact-diplomatic-duty", "label": "First-contact or diplomatic duty" },
+      { "id": "scientific-expedition", "label": "Scientific expedition" },
+      { "id": "starbase-planetary-assignment", "label": "Starbase or planetary assignment" },
+      { "id": "training-staff-service", "label": "Training or staff service" },
+      { "id": "routine-professional-service", "label": "Routine professional service" }
+    ],
+    "assignmentReasons": [
+      { "id": "requested-by-captain", "label": "Requested by the captain" },
+      { "id": "relevant-specialist-experience", "label": "Relevant specialist experience" },
+      { "id": "promoted-into-role", "label": "Promoted into the role" },
+      { "id": "experienced-outsider-transfer", "label": "Experienced outsider transfer" },
+      { "id": "requested-fresh-start", "label": "Requested a fresh start" },
+      { "id": "professional-disagreement-reassignment", "label": "Reassigned after disagreement" },
+      { "id": "newly-assembled-crew", "label": "Part of a newly assembled crew" },
+      { "id": "creator-decides", "label": "Let the creator decide" },
+      { "id": "custom", "label": "Custom" }
+    ],
+    "traitCategories": [
+      {
+        "id": "insight",
+        "label": "Insight",
+        "options": [
+          { "id": "analytical", "label": "Analytical" },
+          { "id": "perceptive", "label": "Perceptive" },
+          { "id": "curious", "label": "Curious" },
+          { "id": "intuitive", "label": "Intuitive" }
+        ]
+      },
+      {
+        "id": "connection",
+        "label": "Connection",
+        "options": [
+          { "id": "diplomatic", "label": "Diplomatic" },
+          { "id": "empathic", "label": "Empathic" },
+          { "id": "candid", "label": "Candid" },
+          { "id": "inspiring", "label": "Inspiring" }
+        ]
+      },
+      {
+        "id": "execution",
+        "label": "Execution",
+        "options": [
+          { "id": "decisive", "label": "Decisive" },
+          { "id": "disciplined", "label": "Disciplined" },
+          { "id": "resourceful", "label": "Resourceful" },
+          { "id": "patient", "label": "Patient" }
+        ]
+      }
+    ],
+    "flaws": {
+      "requiredSelections": 1,
+      "customAllowed": true,
+      "options": [
+        { "id": "guarded", "label": "Guarded", "summary": "Protects private reasoning or feelings longer than others might prefer." },
+        { "id": "stubborn", "label": "Stubborn", "summary": "Can overcommit to a course after deciding it is right." },
+        { "id": "impatient", "label": "Impatient", "summary": "Struggles when process, politics, or fear slow necessary action." },
+        { "id": "controlling", "label": "Controlling", "summary": "May have difficulty delegating when the stakes feel personal." },
+        { "id": "proud", "label": "Proud", "summary": "Can mistake personal credibility for mission necessity." },
+        { "id": "distrustful", "label": "Distrustful", "summary": "Requires evidence and consistency before granting confidence." },
+        { "id": "overprotective", "label": "Overprotective", "summary": "May shield others from risk even when trust requires sharing it." },
+        { "id": "rigid", "label": "Rigid", "summary": "Leans heavily on principles, procedure, or doctrine when ambiguity rises." }
+      ]
+    },
+    "dossier": {
+      "sections": ["identitySummary", "serviceSummary", "briefBiography", "traits", "publicReputation", "optionalOpenThread"],
+      "selfFillCharacterTarget": { "min": 600, "max": 800 },
+      "selfFillCharacterLimit": 1500,
+      "detailLevels": ["Minimal", "Standard", "Detailed"],
+      "defaultDetailLevel": "Standard",
+      "providerCallPreferred": true,
+      "localFallbackRequired": true,
+      "editableSections": ["identitySummary", "serviceSummary", "briefBiography", "publicReputation", "optionalOpenThread"],
+      "removableSections": ["optionalOpenThread"]
+    },
+    "generationRules": {
+      "must": [
+        "Use the active campaign era, ship, role, and mission profile.",
+        "Treat player-entered facts as authoritative unless they contradict package guardrails.",
+        "Keep rank and service progression plausible for a Starfleet Commander assigned as XO.",
+        "Use no more than two named prior postings by default.",
+        "Explain why the Breckenridge assignment is credible.",
+        "Leave family, private beliefs, romantic history, and old relationships open unless the player supplied them."
+      ],
+      "mustNot": [
+        "Invent secret ancestry, hidden powers, criminal history, severe trauma, or canonical celebrity ties without explicit player request.",
+        "Establish friendships, rivalries, or romances with current Breckenridge crew before play begins.",
+        "Reveal campaign secrets or information unavailable at stardate 53068.4.",
+        "Make the player character universally admired or exceptional in every field.",
+        "Let the player character replace senior specialists in advanced engineering, medicine, science, piloting, tactical execution, or intelligence work.",
+        "Assume a different ship, captain, campaign, or player role."
+      ],
+      "priorPostingLimit": 2
+    },
+    "continuityGuardrails": [
+      { "id": "xo-authority", "label": "XO authority", "summary": "The character is the Breckenridge's incoming permanent XO, not the captain or a civilian specialist." },
+      { "id": "captain-final-command", "label": "Captain retains command", "summary": "Whitaker can delegate substantial mission authority but retains final legal command." },
+      { "id": "new-to-crew", "label": "New to the crew", "summary": "The player character does not begin with deep relationships aboard the Breckenridge." },
+      { "id": "postwar-plausibility", "label": "Postwar plausibility", "summary": "Backstory must fit Starfleet service around stardate 53068.4." },
+      { "id": "campaign-secret-safety", "label": "Campaign secret safety", "summary": "The character cannot begin knowing undiscovered campaign evidence or hidden motives." },
+      { "id": "specialist-boundary", "label": "Specialist boundary", "summary": "Senior staff remain necessary experts in their departments." }
+    ],
+    "localFallback": {
+      "biographyTemplate": "{{name}} is a {{species}} Starfleet Commander assigned as Executive Officer of the U.S.S. Breckenridge on stardate 53068.4. Their background in {{careerBackground}} and formative experience with {{formativeExperience}} made them a credible choice for the Asterion Reach mission. Their command style is shaped by {{insightTrait}}, {{connectionTrait}}, and {{executionTrait}}, while {{flaw}} remains a pressure point they will need to manage in command.",
+      "publicReputationTemplate": "{{name}} is regarded as a capable Commander whose {{careerBackground}} background makes the Breckenridge assignment plausible, though the crew is still learning what kind of XO they have received."
+    }
+  },
+  "world": {
+    "id": "asterion-reach",
+    "openingLocationId": "breckenridge-underway",
+    "layout": {
+      "stardatePerDay": 1
+    }
+  },
+  "guardrails": {
+    "canonEra": {
+      "year": 2376,
+      "postDominionWar": true,
+      "voyagerStatus": "Voyager remains in the Delta Quadrant and does not intersect the Breckenridge campaign."
+    },
+    "simulationModes": ["Exploration", "Command"],
+    "defaultSimulationMode": "Command"
+  },
+  "assets": {
+    "images": [
+      {
+        "id": "breckenridge.ship.primary",
+        "kind": "ship.hero",
+        "subjectId": "uss-breckenridge",
+        "variants": {
+          "hero": "assets/packages/breckenridge/images/ship/uss-breckenridge.hero.webp",
+          "card": "assets/packages/breckenridge/images/ship/uss-breckenridge.card.webp",
+          "thumb": "assets/packages/breckenridge/images/ship/uss-breckenridge.thumb.webp"
+        },
+        "layers": {
+          "background": "assets/packages/breckenridge/images/ship/uss-breckenridge.hero-background.webp",
+          "stars": "assets/packages/breckenridge/images/ship/uss-breckenridge.hero-stars.webp",
+          "foreground": "assets/packages/breckenridge/images/ship/uss-breckenridge.hero-ship.webp",
+          "cruise": {
+            "farStars": "assets/packages/breckenridge/images/ship/uss-breckenridge.hero-stars-far.svg",
+            "nearStars": "assets/packages/breckenridge/images/ship/uss-breckenridge.hero-stars-near.svg",
+            "sunlight": "assets/packages/breckenridge/images/ship/uss-breckenridge.hero-sunlight.svg"
+          },
+          "emissive": {
+            "windows": "assets/packages/breckenridge/images/ship/uss-breckenridge.hero-windows.png",
+            "nacelles": "assets/packages/breckenridge/images/ship/uss-breckenridge.hero-nacelles.png",
+            "windowNoise": "assets/packages/breckenridge/images/ship/uss-breckenridge.hero-window-noise.webp"
+          }
+        },
+        "alt": "U.S.S. Breckenridge in flight above a nebula"
+      },
+      {
+        "id": "breckenridge.ship.cohesion",
+        "kind": "ship.cohesion",
+        "subjectId": "uss-breckenridge",
+        "variants": {
+          "hero": "assets/packages/breckenridge/images/ship/uss-breckenridge.cohesion.png"
+        },
+        "visualAnchors": {
+          "bridge": { "x": 0.58, "y": 0.24 },
+          "forward-sensors": { "x": 0.82, "y": 0.5 },
+          "central-saucer": { "x": 0.62, "y": 0.48 },
+          "crew-habitat": { "x": 0.49, "y": 0.56 },
+          "engineering": { "x": 0.3, "y": 0.24 },
+          "port-nacelle": { "x": 0.09, "y": 0.15 },
+          "starboard-nacelle": { "x": 0.48, "y": 0.1 },
+          "aft-hull": { "x": 0.24, "y": 0.22 },
+          "shuttlebay": { "x": 0.2, "y": 0.16 },
+          "sickbay": { "x": 0.55, "y": 0.45 }
+        },
+        "alt": "U.S.S. Breckenridge viewed from above and ahead"
+      },
+      {
+        "id": "breckenridge.location.asterion-station.primary",
+        "kind": "location.hero",
+        "subjectId": "asterion-station",
+        "variants": {
+          "hero": "assets/packages/breckenridge/images/locations/asterion-station.hero.webp",
+          "card": "assets/packages/breckenridge/images/locations/asterion-station.card.webp",
+          "thumb": "assets/packages/breckenridge/images/locations/asterion-station.thumb.webp"
+        },
+        "alt": "Asterion Station in orbit above a planet"
+      },
+      {
+        "id": "breckenridge.crew.mara-whitaker.primary",
+        "kind": "crew.portrait.formal",
+        "subjectId": "mara-whitaker",
+        "variants": {
+          "detail": "assets/packages/breckenridge/images/crew/mara-whitaker.detail.webp",
+          "card": "assets/packages/breckenridge/images/crew/mara-whitaker.card.webp",
+          "thumb": "assets/packages/breckenridge/images/crew/mara-whitaker.thumb.webp"
+        },
+        "alt": "Captain Mara Whitaker"
+      },
+      {
+        "id": "breckenridge.crew.miriam-sato.primary",
+        "kind": "crew.portrait.formal",
+        "subjectId": "miriam-sato",
+        "variants": {
+          "detail": "assets/packages/breckenridge/images/crew/miriam-sato.detail.webp",
+          "card": "assets/packages/breckenridge/images/crew/miriam-sato.card.webp",
+          "thumb": "assets/packages/breckenridge/images/crew/miriam-sato.thumb.webp"
+        },
+        "alt": "Commander Miriam Sato"
+      },
+      {
+        "id": "breckenridge.crew.hadrik-bronn.primary",
+        "kind": "crew.portrait.formal",
+        "subjectId": "hadrik-bronn",
+        "variants": {
+          "detail": "assets/packages/breckenridge/images/crew/hadrik-bronn.detail.webp",
+          "card": "assets/packages/breckenridge/images/crew/hadrik-bronn.card.webp",
+          "thumb": "assets/packages/breckenridge/images/crew/hadrik-bronn.thumb.webp"
+        },
+        "alt": "Lieutenant Commander Hadrik Bronn"
+      },
+      {
+        "id": "breckenridge.crew.imani-cross.primary",
+        "kind": "crew.portrait.formal",
+        "subjectId": "imani-cross",
+        "variants": {
+          "detail": "assets/packages/breckenridge/images/crew/imani-cross.detail.webp",
+          "card": "assets/packages/breckenridge/images/crew/imani-cross.card.webp",
+          "thumb": "assets/packages/breckenridge/images/crew/imani-cross.thumb.webp"
+        },
+        "alt": "Lieutenant Commander Imani Cross"
+      },
+      {
+        "id": "breckenridge.crew.rowan-saye.primary",
+        "kind": "crew.portrait.formal",
+        "subjectId": "rowan-saye",
+        "variants": {
+          "detail": "assets/packages/breckenridge/images/crew/rowan-saye.detail.webp",
+          "card": "assets/packages/breckenridge/images/crew/rowan-saye.card.webp",
+          "thumb": "assets/packages/breckenridge/images/crew/rowan-saye.thumb.webp"
+        },
+        "alt": "Lieutenant Commander Rowan Saye"
+      },
+      {
+        "id": "breckenridge.crew.kieran-vale.primary",
+        "kind": "crew.portrait.formal",
+        "subjectId": "kieran-vale",
+        "variants": {
+          "detail": "assets/packages/breckenridge/images/crew/kieran-vale.detail.webp",
+          "card": "assets/packages/breckenridge/images/crew/kieran-vale.card.webp",
+          "thumb": "assets/packages/breckenridge/images/crew/kieran-vale.thumb.webp"
+        },
+        "alt": "Lieutenant Kieran Vale"
+      },
+      {
+        "id": "breckenridge.crew.priya-nayar.primary",
+        "kind": "crew.portrait.formal",
+        "subjectId": "priya-nayar",
+        "variants": {
+          "detail": "assets/packages/breckenridge/images/crew/priya-nayar.detail.webp",
+          "card": "assets/packages/breckenridge/images/crew/priya-nayar.card.webp",
+          "thumb": "assets/packages/breckenridge/images/crew/priya-nayar.thumb.webp"
+        },
+        "alt": "Lieutenant Priya Nayar"
+      }
+    ]
+  }
+}
