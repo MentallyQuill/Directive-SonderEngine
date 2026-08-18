@@ -130,6 +130,7 @@ def test_frame_state_starts_with_domain_authority_derived_from_the_host_epoch():
     assert frame["mission"]["definitionId"] == "mission.prelude-a-ship-underway"
     assert frame["mission"]["branchId"] == "frame.root"
     assert frame["mission"]["revision"] == 0
+    assert frame["ship"] == {"effects": []}
     assert frame["command"]["bearing"] == {
         "kind": "directive.commandBearing.v1",
         "version": 1,

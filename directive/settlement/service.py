@@ -9,7 +9,15 @@ from typing import Any
 
 from ..campaign.source import load_ashes_source
 from ..command.bearing import award
+from ..mission.journey import advance_journey
 from ..mission.reducer import MissionReductionError, reduce_evidence
+from ..ship.mechanics import (
+    SHIP_CLAIM_TYPE,
+    ShipReductionError,
+    derive_ship_state,
+    reduce_ship_evidence,
+    ship_interpretation_candidates,
+)
 from ..time.clock import derive_ship_time
 
 
@@ -53,6 +61,13 @@ def interpret_settlement(view, api, role: str) -> dict[str, Any]:
     definition = _definition(str(mission.get("definitionId") or ""))
     if definition is None or mission.get("status") != "active":
         return _empty("no active Directive mission")
+    source = load_ashes_source()
+    ship = derive_ship_state(
+        source.ship,
+        source.cohesion,
+        (frame.get("ship") or {}).get("effects") or (),
+        branch_id=str(mission.get("branchId") or ""),
+    )
     resolve = view.resolve if isinstance(view.resolve, dict) else {}
     source_hash = _hash(resolve)
     payload = {
@@ -63,7 +78,10 @@ def interpret_settlement(view, api, role: str) -> dict[str, Any]:
         },
         "resolved_event": view.resolved_event,
         "state_diff": view.state_diff,
-        "candidates": _candidates(definition),
+        "candidates": [
+            *_candidates(definition),
+            *ship_interpretation_candidates(source.ship, ship),
+        ],
     }
     raw = api.llm_json(
         (
@@ -80,18 +98,22 @@ def interpret_settlement(view, api, role: str) -> dict[str, Any]:
     if not isinstance(raw_claims, list):
         return _empty("settlement model did not return a claims array")
     policies = {item["id"]: item for item in definition.get("evidencePolicies") or ()}
+    ship_candidates = {
+        item["policyId"]: item for item in ship_interpretation_candidates(source.ship, ship)
+    }
     claims = []
     for position, item in enumerate(raw_claims):
         if not isinstance(item, dict) or set(item) - _MODEL_CLAIM_KEYS:
             return _empty(f"claim {position} has an invalid shape")
-        policy = policies.get(item.get("policyId"))
+        policy = policies.get(item.get("policyId")) or ship_candidates.get(item.get("policyId"))
         if (
             policy is None
             or item.get("claimType") != policy.get("claimType")
             or item.get("targetId") != policy.get("targetId")
         ):
             return _empty(f"claim {position} is outside the closed candidate set")
-        signature = f"{view.turn_id}|{source_hash}|{policy['id']}|{position}"
+        candidate_id = str(policy.get("id") or policy.get("policyId"))
+        signature = f"{view.turn_id}|{source_hash}|{candidate_id}|{position}"
         claim_id = "claim." + hashlib.sha256(signature.encode("utf-8")).hexdigest()[:24]
         evidence_key = "|".join((
             mission["branchId"], str(view.turn_id), source_hash,
@@ -99,7 +121,7 @@ def interpret_settlement(view, api, role: str) -> dict[str, Any]:
         ))
         claim = {
             "claimId": claim_id,
-            "policyId": policy["id"],
+            "policyId": candidate_id,
             "claimType": policy["claimType"],
             "targetId": policy["targetId"],
             "evidenceKey": evidence_key,
@@ -111,8 +133,22 @@ def interpret_settlement(view, api, role: str) -> dict[str, Any]:
             claim["value"] = item["value"]
         claims.append(claim)
     try:
-        reduce_evidence(definition, mission, claims)
-    except (MissionReductionError, ValueError) as exc:
+        ship_claims = [item for item in claims if item["claimType"] == SHIP_CLAIM_TYPE]
+        mission_claims = [item for item in claims if item["claimType"] != SHIP_CLAIM_TYPE]
+        ship_reduction = reduce_ship_evidence(
+            source.ship,
+            source.cohesion,
+            ship["effects"],
+            ship_claims,
+            branch_id=str(mission.get("branchId") or ""),
+        )
+        reduce_evidence(
+            definition,
+            mission,
+            mission_claims,
+            ship_capabilities={item["id"] for item in ship_reduction.state["capabilities"]},
+        )
+    except (MissionReductionError, ShipReductionError, ValueError) as exc:
         return _empty(str(exc))
     return {"kind": PROPOSAL_KIND, "claims": claims, "rejected": []}
 
@@ -138,15 +174,39 @@ def commit_settlement(view, api) -> dict[str, Any]:
     definition = _definition(str(mission.get("definitionId") or ""))
     if definition is None:
         raise MissionReductionError("frame references an unknown mission definition")
-    reduction = reduce_evidence(definition, mission, claims)
+    source = load_ashes_source()
+    ship_claims = [item for item in claims if item.get("claimType") == SHIP_CLAIM_TYPE]
+    mission_claims = [item for item in claims if item.get("claimType") != SHIP_CLAIM_TYPE]
+    ship_reduction = reduce_ship_evidence(
+        source.ship,
+        source.cohesion,
+        (frame.get("ship") or {}).get("effects") or (),
+        ship_claims,
+        branch_id=str(mission.get("branchId") or ""),
+    )
+    reduction = reduce_evidence(
+        definition,
+        mission,
+        mission_claims,
+        ship_capabilities={item["id"] for item in ship_reduction.state["capabilities"]},
+    )
     next_frame = json.loads(json.dumps(frame))
-    next_frame["mission"] = reduction.state
+    previous_settlement = frame.get("settlement") or {}
+    journey = advance_journey(
+        source.missions,
+        reduction.state,
+        previous_settlement.get("mission_history") or (),
+    )
+    next_frame["mission"] = journey.current
+    next_frame["ship"] = {"effects": list(ship_reduction.effects)}
     next_frame["settlement"] = {
-        "status": "committed",
+        "status": "campaign-complete" if journey.conclusion else "committed",
         "source_turn_id": expected_turn,
         "source_hash": expected_hash,
         "applied_effect_ids": [effect["id"] for effect in reduction.effects],
-        "transition": reduction.transition_packet,
+        "last_transition": reduction.transition_packet,
+        "mission_history": list(journey.history),
+        "campaign_conclusion": journey.conclusion,
     }
     bearing = (next_frame.get("command") or {}).get("bearing")
     for item in reduction.command_bearing_awards:
@@ -169,9 +229,10 @@ def commit_settlement(view, api) -> dict[str, Any]:
     )
     view.frame_state.set(next_frame)
     return {
-        "applied": len(reduction.effects),
+        "applied": len(reduction.effects) + len(ship_reduction.applied),
         "mission_revision": reduction.state["revision"],
         "transition": reduction.transition_packet,
+        "advanced_to": journey.current["definitionId"] if journey.advanced else None,
     }
 
 

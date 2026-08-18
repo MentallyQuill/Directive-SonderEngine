@@ -371,7 +371,9 @@ def compile_ashes_archive(
         "package_version": PACKAGE_VERSION,
         "mission": create_mission_state(source.missions[0], branch_id="frame.root"),
         "settlement": {"status": "idle"},
-        "ship": {"cohesion": 50},
+        # The effect ledger is authoritative. Mechanics, capabilities, work
+        # orders, and cohesion are deterministic authored projections.
+        "ship": {"effects": []},
         "command": {
             "player_billet": "Executive Officer",
             "player_rank": "Commander",

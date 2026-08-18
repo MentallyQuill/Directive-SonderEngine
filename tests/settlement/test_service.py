@@ -150,6 +150,24 @@ def test_malformed_model_output_becomes_no_proposal_and_never_mutates_frame():
     assert output["rejected"]
 
 
+def test_ship_work_uses_the_same_bound_proposal_and_effect_ledger():
+    api = API(initial_frame())
+    api.llm_json = lambda *args, **kwargs: {"claims": [{
+        "policyId": "ship-milestone.integration-isolation-test",
+        "claimType": "shipMilestoneCompleted",
+        "targetId": "ship-milestone.integration-isolation-test",
+    }]}
+    proposal = interpret_settlement(StepView(), api, "ext:directive:settlement")
+    view = CommitView(initial_frame(), proposal)
+
+    result = commit_settlement(view, api)
+
+    assert result["applied"] == 1
+    effect = view.frame_state.value["ship"]["effects"][0]
+    assert effect["targetId"] == "ship-milestone.integration-isolation-test"
+    assert effect["sourceTurnId"] == "7"
+
+
 def test_directive_rejects_any_surviving_player_dialogue_after_host_floors():
     api = API(initial_frame())
 

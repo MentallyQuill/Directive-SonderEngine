@@ -84,6 +84,11 @@ def test_projection_omits_hidden_objectives_and_private_state_roots():
         assert forbidden not in rendered
     assert projection["time"]["clock_display"] == "08:30:00"
     assert projection["command_bearing"]["balance"] == 0
+    assert projection["ship"]["cohesion"]["total"] == 75
+    assert projection["ship"]["cohesion"]["band"]["id"] == "ready"
+    assert len(projection["ship"]["cohesion"]["issues"]) == 2
+    assert "narratorGuidance" not in rendered
+    assert "interpretation" not in rendered
 
 
 def test_absent_directive_crew_values_remain_absent():

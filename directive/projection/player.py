@@ -8,6 +8,7 @@ from typing import Any
 
 from ..campaign.source import load_ashes_source
 from ..command.bearing import project_bearing
+from ..ship.mechanics import derive_ship_state
 from ..time.clock import project_time
 
 
@@ -88,10 +89,74 @@ def _people(api, chat_id: int, player_view: Mapping[str, Any]) -> list[dict[str,
     return output
 
 
+def _ship_projection(frame_ship: Mapping[str, Any], branch_id: str) -> dict[str, Any]:
+    source = load_ashes_source()
+    state = derive_ship_state(
+        source.ship,
+        source.cohesion,
+        frame_ship.get("effects") or (),
+        branch_id=branch_id,
+    )
+    return {
+        "kind": "directive.shipPlayerProjection.v1",
+        "systems": [{
+            "id": item["id"],
+            "label": item.get("label"),
+            "summary": item.get("summary"),
+            "state": copy.deepcopy(item["state"]),
+            "state_ladder": copy.deepcopy(item["stateLadder"]),
+            "work_orders": copy.deepcopy(item["workOrders"]),
+        } for item in state["systems"]],
+        "capabilities": [{
+            "id": item["id"],
+            **copy.deepcopy(item.get("playerText") or {}),
+        } for item in state["capabilities"]],
+        "constraints": [{
+            "id": item["id"],
+            **copy.deepcopy(item.get("playerText") or {}),
+        } for item in state["constraints"]],
+        "cohesion": {
+            "total": state["cohesion"]["total"],
+            "debt": state["cohesion"]["debt"],
+            "band": copy.deepcopy(state["cohesion"]["band"]),
+            "segments": copy.deepcopy(state["cohesion"]["segments"]),
+            "issues": [{
+                "id": item["id"],
+                "level": item["level"],
+                "cohesion": item["cohesion"],
+                "player_text": copy.deepcopy(item["playerText"]),
+                "computer_help": item.get("computerHelp"),
+                "phases": copy.deepcopy(item["phases"]),
+                "current_phase": copy.deepcopy(item.get("currentPhase")),
+            } for item in state["cohesion"]["visibleTasks"]],
+            "queued_count": len(state["cohesion"]["queuedTasks"]),
+            "completed": copy.deepcopy(state["cohesion"]["completedHistory"]),
+        },
+    }
+
+
+def _transition_projection(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    target = value.get("next") or {}
+    return {
+        "source_mission_id": value.get("sourceMissionId"),
+        "source_disposition": value.get("sourceDisposition"),
+        "outcome_summary": copy.deepcopy(value.get("playerKnownOutcomeSummary") or []),
+        "optional_outcome_summaries": copy.deepcopy(value.get("optionalOutcomeSummaries") or []),
+        "next": {
+            "kind": target.get("kind"),
+            "id": target.get("id"),
+            "player_safe_setup": target.get("playerSafeSetup"),
+        },
+    }
+
+
 def create_player_projection(api, chat_id: int) -> dict[str, Any]:
     player = api.player_view(chat_id, "player")
     frame = api.frame_state(chat_id).get() or {}
     mission = frame.get("mission") or {}
+    settlement = frame.get("settlement") or {}
     campaign = load_ashes_source().campaign.get("campaign") or {}
     projection = {
         "kind": "directive.playerProjection.v1",
@@ -103,9 +168,19 @@ def create_player_projection(api, chat_id: int) -> dict[str, Any]:
         },
         "viewer": copy.deepcopy(player.get("viewer") or {}),
         "mission": _mission_projection(mission),
-        "ship": {
-            "cohesion": (frame.get("ship") or {}).get("cohesion"),
+        "journey": {
+            "completed_count": len(settlement.get("mission_history") or ()),
+            "completed_mission_ids": [
+                (item.get("state") or {}).get("definitionId")
+                for item in settlement.get("mission_history") or ()
+            ],
+            "last_transition": _transition_projection(settlement.get("last_transition")),
+            "campaign_conclusion": copy.deepcopy(settlement.get("campaign_conclusion")),
         },
+        "ship": _ship_projection(
+            frame.get("ship") or {},
+            str(mission.get("branchId") or ""),
+        ),
         "command_bearing": project_bearing((frame.get("command") or {}).get("bearing")),
         "time": project_time((frame.get("time") or {}).get("ledger")),
         "people": _people(api, int(chat_id), player),
