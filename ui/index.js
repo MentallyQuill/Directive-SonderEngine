@@ -1,5 +1,10 @@
 import { createDirectiveView } from "./app.js";
 
+export { renderMissionView } from "./views/mission.js";
+export { renderPeopleView } from "./views/people.js";
+export { renderSettingsView } from "./views/settings.js";
+export { renderShipView } from "./views/ship.js";
+
 export function createDirectiveFocusController(sonder, root = document) {
   let returnTarget = null;
   return {
