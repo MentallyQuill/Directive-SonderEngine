@@ -54,7 +54,8 @@ The integration suite stages this extension under a temporary directory named
 ## Reference revisions
 
 - Directive: `06b7e3160a6c1fefe2134e5cac926843b5a0c1ee`
-- Sonder Engine: `a79443b10a0872c1a3ffb3e9840232b1fd622209`
+- Sonder Engine design baseline: `a79443b10a0872c1a3ffb3e9840232b1fd622209`
+- Sonder Engine final verification: `ba621a8211b24a5a516c3ac2b1ddbce0ebe93a53`
 
 The reference checkouts are read-only inputs. No push, publication, deployment,
 or pull request is part of this migration workspace.

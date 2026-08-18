@@ -15,7 +15,8 @@
 | Item | Value |
 |---|---|
 | Directive revision | `06b7e3160a6c1fefe2134e5cac926843b5a0c1ee` |
-| Sonder revision | `a79443b10a0872c1a3ffb3e9840232b1fd622209` |
+| Sonder design baseline | `a79443b10a0872c1a3ffb3e9840232b1fd622209` |
+| Sonder final verification | `ba621a8211b24a5a516c3ac2b1ddbce0ebe93a53` (descendant that arrived concurrently during the run) |
 | Target starting state | Empty Git repository, no commits |
 | Playable Directive scope | Ashes of Peace; other campaigns remain disabled previews |
 | Legacy runtime | Hard cutover; no SillyTavern compatibility runtime |
