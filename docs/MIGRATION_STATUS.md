@@ -29,7 +29,7 @@
 | Atomic Ashes provisioning | Verified | Current Sonder provisions persona, seven crew, scene, state, authority, contexts, documents and provenance; invalid documents leave the database byte-identical |
 | Directive state schemas/domain services | In progress | Strict chat/frame/crew, mission, Command Bearing, ship/cohesion, time, journey, and simulation-policy tests pass; generated cohesion and people-event domains remain |
 | Settlement on Sonder committed lineage | Verified | Closed candidates, exact turn/hash binding, idempotence, fail-closed commit domain, and current-host transactional advancement |
-| Player authority and campaign validators | In progress | Sonder `actor_only` plus Directive surviving-dialogue correction unit proof; still-invalid live no-commit and secret adversarial matrix remain |
+| Player authority and campaign validators | In progress | Sonder `actor_only` plus a current-host fatal correction for surviving player dialogue with unchanged frame state; full one-repair/still-invalid pipeline and secret adversarial matrix remain |
 | Missions, objectives, evidence, consequences | In progress | All 13 definitions validate; deterministic reducer and journey/capability transitions pass; complete authored scenario matrix remains |
 | Ship mechanics, cohesion and assignments | In progress | Authored work ladders, constraints, capabilities, 20-segment cohesion, projection, and replay pass; generated issue scheduler remains |
 | Time and Stardate | Verified | Host-clock derivation, rollover, projection, and narration non-authority tests |
@@ -37,7 +37,7 @@
 | Aggregate player-safe projections | Verified | Mission, journey, ship, time, Bearing, crew and media allowlists; hidden/private omission tests |
 | LCARS UI and interactions | Implemented | ES-module host asset serving, syntax, mount, route, mobile CSS, focus-ring and reduced-motion contracts pass; live browser binding failed before visual geometry proof |
 | Campaign lifecycle/settings/notices | In progress | Atomic start, host open, simulation mode selection and settings copy implemented; notices and campaign management polish remain |
-| Branch/replay/checkpoint/export | In progress | Current-Sonder checkpoint rewind and portable export/import preserve Directive state, frame state, documents and provenance; branch/reroll round trips remain |
+| Branch/replay/checkpoint/export | In progress | Current-Sonder checkpoint rewind, branch, and portable export/import preserve Directive state, frame state, documents and provenance; completed-turn reroll proof remains |
 | Optional one-way legacy importer | Not assessed | Separate product decision; not a native-runtime dependency |
 | SillyTavern removal audit | In progress | Foundation runtime audit is clean; later runtime/UI phases remain |
 | Full clean regression | In progress | 101 Python tests, compileall and JS syntax pass; clean-checkout and browser gates remain |
@@ -60,7 +60,7 @@ No upstream Sonder blocker is currently proven. Historical gap reports under `do
 ## Latest executable evidence
 
 - `C:\Python313\python.exe -m pytest -q --basetemp=.tmp/pytest-ui-full --disable-warnings`: **101 passed** (150 warnings from the pinned Sonder host's current Pydantic deprecations).
-- Current-host integration covers discovery/activation, route dispatch, archive import/readback, an unchanged database hash on invalid input, player projection, exact-turn settlement commit, checkpoint rewind, portable export/import, and ES-module/CSS serving.
+- Current-host integration covers discovery/activation, route dispatch, archive import/readback, an unchanged database hash on invalid input, player projection, fatal player-dialogue correction without state mutation, exact-turn settlement commit, checkpoint rewind, branch carriage, portable export/import, and ES-module/CSS serving.
 - `C:\Python313\python.exe -m compileall -q directive tests`: passed.
 - `node --check ui/app.js` and `node --check ui/index.js`: passed.
 - Runtime forbidden-dependency scan has no SillyTavern/provider/parallel-timeline imports; only the authored-source rejection list names retired countdown keys.

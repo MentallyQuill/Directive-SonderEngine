@@ -289,8 +289,8 @@ def test_current_sonder_serves_the_directive_module_graph_and_lcars_styles(live_
     assert "prefers-reduced-motion" in styles
 
 
-def test_current_sonder_checkpoint_and_portable_archive_carry_directive_state(live_sonder):
-    extension_runtime, api, _db, _path = live_sonder
+def test_current_sonder_checkpoint_branch_and_archive_carry_directive_state(live_sonder):
+    extension_runtime, api, db, _path = live_sonder
     from checkpoints import ensure_checkpoint, restore_checkpoint
     from db import wset
     import app
@@ -312,6 +312,16 @@ def test_current_sonder_checkpoint_and_portable_archive_carry_directive_state(li
     restore_checkpoint(chat_id, 0)
     assert api.frame_state(chat_id).get() == expected_frame
 
+    turn_id = db.qi(
+        "INSERT INTO turns(chat_id,idx,player_input,created,frame_id) VALUES(?,?,?,?,?)",
+        (chat_id, 0, "Branch boundary", 1.0, None),
+    )
+    branched = app.turn_branch(turn_id)
+    branch_id = branched["id"]
+    assert api.state(branch_id).get() == expected_state
+    assert api.frame_state(branch_id).get() == expected_frame
+    assert api.documents(branch_id).get("package/campaign") == expected_campaign
+
     imported = app.chat_import({"data": app.chat_export(chat_id)})
     imported_id = imported["id"]
     assert api.state(imported_id).get() == expected_state
@@ -321,3 +331,35 @@ def test_current_sonder_checkpoint_and_portable_archive_carry_directive_state(li
     assert provenance["package"] == PACKAGE_ID
     assert provenance["version"] == PACKAGE_VERSION
     assert provenance["extension"] == "directive"
+
+
+def test_current_sonder_marks_surviving_player_dialogue_fatal_before_commit(live_sonder):
+    extension_runtime, api, _db, _path = live_sonder
+    made = extension_runtime.dispatch_route(
+        "directive", "POST", "/start", body=player_payload()
+    )
+    chat_id = made["chat_id"]
+    before = api.frame_state(chat_id).get()
+
+    class Value:
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
+
+    class Context:
+        chat = Value(id=chat_id)
+        turn = Value(id=900, idx=1, frame_id=None)
+        warnings = []
+
+    violations, fatal = extension_runtime.validate_director_result(
+        Context(),
+        {
+            "resolved_event": "Whitaker waits for the commander's answer.",
+            "state_diff": {},
+            "dialogue_log": [{"speaker": "Sam Vickers", "exact_quote": "I agree."}],
+        },
+    )
+
+    assert fatal is True
+    assert violations[0]["extension"] == "directive"
+    assert violations[0]["code"] == "invented-player-dialogue"
+    assert api.frame_state(chat_id).get() == before
