@@ -37,7 +37,7 @@
 | Aggregate player-safe projections | Verified | Mission, journey, ship, time, Bearing, crew and media allowlists; hidden/private omission tests |
 | LCARS UI and interactions | Implemented | ES-module host asset serving, syntax, mount, route, mobile CSS, focus-ring and reduced-motion contracts pass; live browser binding failed before visual geometry proof |
 | Campaign lifecycle/settings/notices | In progress | Atomic start, host open, simulation mode selection and settings copy implemented; notices and campaign management polish remain |
-| Branch/replay/checkpoint/export | Assessed | Sonder integration round trips |
+| Branch/replay/checkpoint/export | In progress | Current-Sonder checkpoint rewind and portable export/import preserve Directive state, frame state, documents and provenance; branch/reroll round trips remain |
 | Optional one-way legacy importer | Not assessed | Separate product decision; not a native-runtime dependency |
 | SillyTavern removal audit | In progress | Foundation runtime audit is clean; later runtime/UI phases remain |
 | Full clean regression | In progress | 101 Python tests, compileall and JS syntax pass; clean-checkout and browser gates remain |
@@ -60,7 +60,7 @@ No upstream Sonder blocker is currently proven. Historical gap reports under `do
 ## Latest executable evidence
 
 - `C:\Python313\python.exe -m pytest -q --basetemp=.tmp/pytest-ui-full --disable-warnings`: **101 passed** (150 warnings from the pinned Sonder host's current Pydantic deprecations).
-- Current-host integration covers discovery/activation, route dispatch, archive import/readback, an unchanged database hash on invalid input, player projection, exact-turn settlement commit, and ES-module/CSS serving.
+- Current-host integration covers discovery/activation, route dispatch, archive import/readback, an unchanged database hash on invalid input, player projection, exact-turn settlement commit, checkpoint rewind, portable export/import, and ES-module/CSS serving.
 - `C:\Python313\python.exe -m compileall -q directive tests`: passed.
 - `node --check ui/app.js` and `node --check ui/index.js`: passed.
 - Runtime forbidden-dependency scan has no SillyTavern/provider/parallel-timeline imports; only the authored-source rejection list names retired countdown keys.

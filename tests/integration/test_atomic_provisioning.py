@@ -287,3 +287,37 @@ def test_current_sonder_serves_the_directive_module_graph_and_lcars_styles(live_
     assert "createDirectiveView" in app_module
     assert "@media (max-width: 720px)" in styles
     assert "prefers-reduced-motion" in styles
+
+
+def test_current_sonder_checkpoint_and_portable_archive_carry_directive_state(live_sonder):
+    extension_runtime, api, _db, _path = live_sonder
+    from checkpoints import ensure_checkpoint, restore_checkpoint
+    from db import wset
+    import app
+
+    made = extension_runtime.dispatch_route(
+        "directive", "POST", "/start", body=player_payload()
+    )
+    chat_id = made["chat_id"]
+    expected_state = api.state(chat_id).get()
+    expected_frame = api.frame_state(chat_id).get()
+    expected_campaign = api.documents(chat_id).get("package/campaign")
+
+    ensure_checkpoint(chat_id, 0)
+    changed = json.loads(json.dumps(expected_frame))
+    changed["settlement"] = {"status": "must-be-rewound"}
+    wset(chat_id, "extf:directive", changed)
+    assert api.frame_state(chat_id).get()["settlement"]["status"] == "must-be-rewound"
+
+    restore_checkpoint(chat_id, 0)
+    assert api.frame_state(chat_id).get() == expected_frame
+
+    imported = app.chat_import({"data": app.chat_export(chat_id)})
+    imported_id = imported["id"]
+    assert api.state(imported_id).get() == expected_state
+    assert api.frame_state(imported_id).get() == expected_frame
+    assert api.documents(imported_id).get("package/campaign") == expected_campaign
+    provenance = api.provenance(imported_id)
+    assert provenance["package"] == PACKAGE_ID
+    assert provenance["version"] == PACKAGE_VERSION
+    assert provenance["extension"] == "directive"

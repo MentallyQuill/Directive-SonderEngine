@@ -28,7 +28,8 @@ provider layer, checkpoint store, or world timeline beside Sonder.
   Crew, and People views, plus the 37 package-referenced Breckenridge assets.
 - Live integration proof against the pinned current Sonder checkout, including
   byte-identical database refusal for invalid turn-zero documents, extension
-  UI asset serving, and transactional commit-domain advancement.
+  UI asset serving, transactional commit-domain advancement, checkpoint rewind,
+  and portable export/import of Directive state and documents.
 
 Generated cohesion scheduling, people-event authoring, expanded creator assist,
 adversarial secret-safety coverage, browser geometry, and full branch/replay
