@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "devDependencies": {
-    "happy-dom": "20.11.2"
+    "happy-dom": "20.11.2",
+    "playwright": "1.61.1"
   }
 }

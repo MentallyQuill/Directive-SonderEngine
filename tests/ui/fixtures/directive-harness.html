@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Directive UI review harness</title>
+  <link rel="stylesheet" href="../../../ui/directive.css">
+  <style>
+    html, body, #host { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #05070b; }
+    #launcher { position: fixed; top: 8px; right: 8px; z-index: 2; min-width: 44px; min-height: 44px; }
+  </style>
+</head>
+<body>
+  <button id="launcher" data-ext-button="directive-launch">Directive</button>
+  <main id="host"></main>
+  <script type="module">
+    import { register } from "../../../ui/index.js";
+
+    const PROJECTION = {
+      kind: "directive.playerProjection.v1",
+      schema: 1,
+      chat_id: 27,
+      campaign: { id: "ashes-of-peace", title: "Ashes of Peace", simulation_mode: "Exploration" },
+      media: {
+        ship: {
+          kind: "ship.hero",
+          alt: "U.S.S. Breckenridge underway",
+          variants: {
+            hero: "/assets/packages/breckenridge/images/ship/uss-breckenridge.hero.webp",
+            card: "/assets/packages/breckenridge/images/ship/uss-breckenridge.card.webp"
+          }
+        }
+      },
+      viewer: { id: "player", name: "Avery Quill", kind: "player" },
+      mission: {
+        id: "mission.prelude-a-ship-underway",
+        version: 1,
+        revision: 4,
+        status: "active",
+        objectives: [
+          {
+            id: "objective.prelude.command-handover",
+            state: "terminal",
+            visibility: "visible",
+            title: "Settle the command handover",
+            summary: "Establish the terms of command with Captain Whitaker.",
+            disposition: "completed",
+            terminal_text: "The command handover terms were settled."
+          },
+          {
+            id: "objective.prelude.staff-readiness",
+            state: "available",
+            visibility: "visible",
+            title: "Review senior staff readiness",
+            summary: "Meet the senior staff and establish the ship's readiness."
+          }
+        ],
+        outcome_dimensions: { "dimension.prelude.command-readiness": "ready-with-limitation" },
+        outcome_summary: [],
+        optional_outcome_summaries: []
+      },
+      journey: {
+        completed_count: 1,
+        completed_mission_ids: ["mission.prologue"],
+        last_transition: {
+          source_mission_id: "mission.prologue",
+          source_disposition: "primarySuccess",
+          outcome_summary: ["The Breckenridge departed spacedock."],
+          optional_outcome_summaries: [],
+          next: {
+            kind: "mission",
+            id: "mission.prelude-a-ship-underway",
+            player_safe_setup: "The new command team begins its readiness review."
+          }
+        },
+        campaign_conclusion: null
+      },
+      ship: {
+        name: "U.S.S. Breckenridge",
+        class_name: "Intrepid-class",
+        systems: [
+          {
+            id: "system.sensors",
+            label: "Sensor suite",
+            summary: "Long-range calibration remains incomplete.",
+            state: { id: "limited", label: "Limited", mechanicalEffect: "Long-range resolution is reduced." },
+            state_ladder: [{ id: "limited", label: "Limited" }, { id: "ready", label: "Ready" }],
+            work_orders: [{ id: "work.sensors.calibrate", label: "Calibrate long-range array", summary: "Complete a full-spectrum calibration.", status: "known" }]
+          },
+          {
+            id: "system.integration",
+            label: "Systems integration",
+            summary: "Core integrations are stable.",
+            state: { id: "ready", label: "Ready", mechanicalEffect: "No integration limitation is recorded." },
+            state_ladder: [{ id: "ready", label: "Ready" }],
+            work_orders: []
+          }
+        ],
+        capabilities: [{ id: "capability.medical", label: "Medical support", summary: "Sickbay can receive multiple casualties." }],
+        constraints: [{ id: "constraint.sensors", label: "Sensor limitation", summary: "Long-range resolution remains reduced." }],
+        cohesion: {
+          total: 75,
+          debt: 25,
+          band: { id: "ready", label: "Ready" },
+          segments: [
+            { index: 0, filled: false, issueId: "cohesion.sensor-calibration", visible: true, level: 2 },
+            { index: 1, filled: true, issueId: null, visible: false, level: null }
+          ],
+          issues: [{
+            id: "cohesion.sensor-calibration",
+            level: 2,
+            cohesion: 10,
+            player_text: {
+              title: "Restore sensor confidence",
+              situation: "The sensor team needs a clean calibration result.",
+              objective: "Complete the calibration and verification sweep.",
+              whyItMatters: "Reliable readings improve bridge coordination.",
+              operationalEffect: "Uncertain contacts may consume response time."
+            },
+            computer_help: "Review the sensor work orders.",
+            phases: [{ id: "phase.calibrate", status: "available", label: "Calibration", summary: "Calibrate the array." }],
+            current_phase: { id: "phase.calibrate", status: "available", label: "Calibration", summary: "Calibrate the array." }
+          }],
+          queued_count: 1,
+          completed: []
+        }
+      },
+      command_bearing: {
+        balance: 2,
+        capacity: 3,
+        latest_award_reason: "You carried a command decision to a responsible disposition.",
+        pending_edge: null,
+        pending_cohesion_relief: null,
+        latest_spend: null
+      },
+      time: { elapsed_seconds: 31320, clock_display: "08:42:00", stardate: 57300.4 },
+      people: [
+        {
+          id: "11",
+          kind: "character",
+          display_name: "Mara Whitaker",
+          identity_status: "recognized",
+          facts: { public_history: "Captain Whitaker commands the Breckenridge." },
+          directive: {
+            crew_id: "mara-whitaker",
+            rank: "Captain",
+            role: "Commanding Officer",
+            department: "command",
+            public_record: { birthplace: "Kingston, Ontario, Earth", serviceBackground: "Science operations, diplomacy, executive command" },
+            operational_summary: "Captain Whitaker commands the Breckenridge.",
+            media: {
+              kind: "crew.portrait.formal",
+              alt: "Captain Mara Whitaker",
+              variants: { detail: "/assets/packages/breckenridge/images/crew/mara-whitaker.detail.webp" }
+            }
+          }
+        },
+        {
+          id: "18",
+          kind: "character",
+          display_name: "Priya Nayar",
+          identity_status: "recognized",
+          directive: { crew_id: "priya-nayar", rank: "Lieutenant Commander", role: "Chief Science Officer", department: "science", duty_status: "On duty" }
+        },
+        { id: "body:unknown-1", kind: "presence", display_name: "an unfamiliar ensign", identity_status: "observed" }
+      ],
+      turn: { id: 14, idx: 6 },
+      location: { room_id: "ready-room", name: "Captain's Ready Room" },
+      perception: { summary: "The senior staff are assembling." },
+      knows: ["Mara Whitaker commands the Breckenridge."]
+    };
+
+    const onboarding = new URLSearchParams(location.search).has("onboarding");
+    let registeredView = null;
+    let topButton = null;
+    const host = document.querySelector("#host");
+    const sonder = {
+      registerView(view) { registeredView = view; },
+      registerTopBarButton(button) { topButton = button; },
+      registerSettingsSection() {},
+      registerStepRenderer() {},
+      state() { return { chatId: onboarding ? null : 27 }; },
+      api: async () => PROJECTION,
+      chats: { open: async () => {} },
+      refresh: async () => {},
+      openView(id) {
+        if (registeredView?.id !== id) return false;
+        registeredView.render(host);
+        return true;
+      },
+      closeView() { host.replaceChildren(); }
+    };
+    register(sonder);
+    document.querySelector("#launcher").addEventListener("click", () => topButton.onClick());
+    window.__directiveHarness = { sonder, projection: PROJECTION };
+  </script>
+</body>
+</html>

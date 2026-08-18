@@ -48,7 +48,7 @@ No target runtime module imports SillyTavern or reaches into a SillyTavern insta
 | Campaign/package provenance and product rules | Directive | `api.state` plus provisioned documents |
 | What happened in one era: mission, settlement, ship, time mapping | Directive | `api.frame_state`, written by fail-closed commit domains |
 | Directive data attached to a person | Directive joined to Sonder identity | `api.char_state` seeded on archive participants and keyed by Sonder character id |
-| UI preferences and campaign library | Directive install scope | `api.settings` and install-scoped documents |
+| UI preferences and campaign library | Directive install scope (planned) | Current UI is projection-only; persistence and multi-package management are not implemented |
 
 Directive does not maintain a transcript, identity ledger, perception ledger, provider registry, checkpoint store or parallel world timeline.
 
@@ -113,9 +113,11 @@ Sonder's simulation clock is the sole generic time authority. Directive owns the
 
 ## UI
 
-Directive uses a Sonder ES-module entry and registered full-window view, toolbar launcher, settings section, and settlement step renderer. The LCARS application currently provides Campaign, Mission, Ship, Crew, and People routes. Campaign creation opens the resulting story through Sonder's declared chat lifecycle. Sonder retains its native controls for branching, rerolling, and narration variants rather than Directive duplicating them.
+Directive uses a Sonder ES-module entry (`ui/index.js`) and registered full-window view, toolbar launcher, settings section, and settlement step renderer. `ui/app.js` owns projection loading and ephemeral route state; `ui/shell.js`, `ui/routes.js`, and `ui/primitives.js` own the five-route LCARS shell; `ui/views/{campaign,creator,mission,people,ship,settings}.js` render the individual workspaces. The routes are exactly Campaign, Mission, People, Ship, and Settings in that order. Campaign creation uses the extension route, then opens the resulting story through Sonder's declared chat lifecycle. Sonder retains its native controls for branching, rerolling, and narration variants rather than Directive duplicating them.
 
-All gameplay data is fetched from Directive routes that assemble player-safe DTOs. Presentation state never writes campaign truth. The implemented surface has native button focus rings, reduced-motion rules, and mobile/desktop layouts. Live Playwright proof against current Sonder covers all five routes at 1440×900 and 390×844, including media loading, Directive-owned overflow, keyboard focus entry and restoration, and reduced motion. Focus restoration resolves the current host launcher by its stable `data-ext-button` id because Sonder may rebuild the toolbar while the view is open.
+All gameplay data is fetched from Directive routes that assemble player-safe DTOs. Presentation state never writes campaign truth. Live Playwright proof against current Sonder covers onboarding and all five routes at 1440×900 and 390×844, including exact route order and active identity, LCARS tokens, responsive rail/shelf geometry, 44px controls, media decoding, Directive-owned overflow, keyboard focus entry/restoration, Escape close, roving route focus, reduced motion, and browser/request failures. Focus restoration resolves the current host launcher by its stable `data-ext-button` id because Sonder may rebuild the toolbar while the view is open. The Sonder bridge also gives route glyph masks explicit extension-asset URLs because relative CSS URLs otherwise resolve against Sonder's aggregated stylesheet endpoint.
+
+That browser proof verifies the responsive host integration and the workspaces that actually exist; it is not a claim that every interaction in the current Directive reference product has migrated. Campaign save/load/delete and multi-package management, persistent gameplay notices, creator assist, people reordering/categories and Command Bearing actions, the Ship orbit/callout workspace, and unavailable backend-powered mutations remain in progress. Settings intentionally states the Sonder ownership boundary instead of duplicating provider controls. On desktop, Sonder's story sidebar remains outside the registered extension view; on mobile it is off canvas. Those host-owned surfaces are not styled or hidden by Directive.
 
 ## Legacy data
 

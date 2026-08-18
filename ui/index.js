@@ -12,7 +12,7 @@ export function createDirectiveFocusController(sonder, root = document) {
       returnTarget = root.activeElement;
       const opened = sonder.openView("directive");
       if (!opened) return false;
-      schedule(root, () => root.querySelector(".directive-close")?.focus({ preventScroll: true }));
+      schedule(root, () => root.querySelector(".directive-close-action")?.focus({ preventScroll: true }));
       return true;
     },
     close() {

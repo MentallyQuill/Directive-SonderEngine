@@ -76,7 +76,7 @@ function focusRoot(activeElement, closeButton, replacementLauncher = null) {
     activeElement,
     defaultView: { requestAnimationFrame(callback) { callback(); } },
     querySelector(selector) {
-      if (selector === ".directive-close") return closeButton;
+      if (selector === ".directive-close-action") return closeButton;
       if (selector === '[data-ext-button="directive-launch"]') return replacementLauncher;
       return null;
     },

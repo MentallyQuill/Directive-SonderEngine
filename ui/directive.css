@@ -5883,6 +5883,12 @@ html.directive-reorder-grabbing * { cursor: grabbing !important; }
 }
 
 /* Sonder facade bridge: the host owns the viewport; Directive owns shell scrolling. */
+.directive-app .directive-vector-glyph[data-glyph="route-campaign"] { --directive-glyph-url: url("/api/extensions/directive/asset/assets/icons/directive-vector-glyphs-v1/icons/route-campaign.svg"); }
+.directive-app .directive-vector-glyph[data-glyph="route-mission"] { --directive-glyph-url: url("/api/extensions/directive/asset/assets/icons/directive-vector-glyphs-v1/icons/route-mission.svg"); }
+.directive-app .directive-vector-glyph[data-glyph="route-crew"] { --directive-glyph-url: url("/api/extensions/directive/asset/assets/icons/directive-vector-glyphs-v1/icons/route-crew.svg"); }
+.directive-app .directive-vector-glyph[data-glyph="route-ship"] { --directive-glyph-url: url("/api/extensions/directive/asset/assets/icons/directive-vector-glyphs-v1/icons/route-ship.svg"); }
+.directive-app .directive-vector-glyph[data-glyph="route-settings"] { --directive-glyph-url: url("/api/extensions/directive/asset/assets/icons/directive-vector-glyphs-v1/icons/route-settings.svg"); }
+
 .directive-app.directive-runtime-panel.directive-expanded-shell {
   --directive-focus: #ffe58f;
   position: relative !important;
@@ -5905,6 +5911,14 @@ html.directive-reorder-grabbing * { cursor: grabbing !important; }
 .directive-app .directive-route-control {
   min-width: 44px;
   min-height: 44px;
+}
+
+.directive-app button,
+.directive-app input,
+.directive-app select,
+.directive-app textarea,
+.directive-app summary {
+  min-height: 44px !important;
 }
 
 .directive-app .directive-shell-time {

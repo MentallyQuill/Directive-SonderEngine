@@ -36,12 +36,13 @@
 | Time and Stardate | Verified | Host-clock derivation, rollover, projection, and narration non-authority tests |
 | People and crew joins | In progress | Seven stable-id joins and public allowlist pass; runtime-observed people events/dossier authoring remain |
 | Aggregate player-safe projections | Verified | Mission, journey, ship, time, Bearing, crew and media allowlists; hidden/private omission tests |
-| LCARS UI and interactions | Verified | ES-module host asset serving, five routes, desktop/mobile geometry, media, keyboard focus transfer/restoration, focus rings and reduced motion pass in a live Sonder browser |
-| Campaign lifecycle/settings/notices | In progress | Atomic start, host open, simulation mode selection and settings copy implemented; notices and campaign management polish remain |
+| LCARS shell and responsive host integration | Verified | Live Sonder serves the ES-module graph and the exact Campaign, Mission, People, Ship, Settings route shell; desktop/mobile geometry, media, 44 px controls, keyboard focus transfer/restoration, roving navigation, Escape, focus rings and reduced motion pass in Chromium |
+| Route workspace visual parity | In progress | Current workspaces render source-safe projections, but the richer structures in current Directive renders remain incomplete: campaign hero/save management, mission master/detail support, People command/reorder surfaces, Ship orbit/callouts/assignment navigation, and persistent settings |
+| Campaign lifecycle/settings/notices | In progress | Atomic start, host open, simulation mode selection and settings ownership copy are implemented; save/load/delete campaign management, notices, creator assist and unavailable-backend interaction states remain |
 | Branch/replay/checkpoint/export | In progress | Current-Sonder checkpoint rewind, branch, and portable export/import preserve Directive state, frame state, documents and provenance; completed-turn reroll proof remains |
 | Optional one-way legacy importer | Not assessed | Separate product decision; not a native-runtime dependency |
 | SillyTavern removal audit | In progress | Foundation runtime audit is clean; later runtime/UI phases remain |
-| Full clean regression | In progress | 104 Python tests, compileall, JS syntax and live browser gates pass; clean-checkout proof remains |
+| Full clean regression | In progress | 105 Python tests run against the current Sonder checkout, plus JS syntax, unit and live browser gates; clean-checkout proof remains |
 
 ## Verified current Sonder facilities
 
@@ -60,13 +61,14 @@ No upstream Sonder blocker is currently proven. Historical gap reports under `do
 
 ## Latest executable evidence
 
-- `C:\Python313\python.exe -m pytest -q --basetemp=.tmp/pytest-focus-full-2 --disable-warnings`: **104 passed** (150 warnings from the pinned Sonder host's current Pydantic deprecations).
+- `$env:SONDER_ENGINE_ROOT='F:\git\Sonder_Engine'; py -3.13 -m pytest -q --disable-warnings --basetemp .tmp/pytest-final-pass`: **105 passed** (150 warnings from the current Sonder host's Pydantic deprecations). The six host-dependent cases that skip without `SONDER_ENGINE_ROOT` executed.
 - Current-host integration covers discovery/activation, route dispatch, archive import/readback, an unchanged database hash on invalid input, player projection, fatal player-dialogue correction without state mutation, exact-turn settlement commit, checkpoint rewind, branch carriage, portable export/import, and ES-module/CSS serving.
 - `C:\Python313\python.exe -m compileall -q directive tests`: passed.
-- `node --check ui/app.js` and `node --check ui/index.js`: passed.
+- `node --check` for every UI module and `node --test tests/ui/*.test.mjs`: passed (**18 tests**).
 - Runtime forbidden-dependency scan has no SillyTavern/provider/parallel-timeline imports; only the authored-source rejection list names retired countdown keys.
 - All 37 assets referenced by the Ashes package were copied with zero SHA-256 mismatches from the pinned Directive checkout.
-- Live Playwright verification against current Sonder passed Campaign, Mission, Ship, Crew and People at 1440×900 and 390×844 with no Directive overflow, broken media, console errors, page errors or failed requests. Keyboard launch moves focus into the view, close restores it to the current launcher after Sonder replaces the toolbar node, and reduced-motion styles resolve to effectively zero duration. Sonder's off-canvas mobile sidebar contributes 48 px of document overflow outside `.directive-app`; the Directive surface itself remains flush at zero overflow.
+- Actual Playwright Chromium 1.61.1 against live Sonder captured onboarding plus Campaign, Mission, People, Ship and Settings at 1440×900 and 390×844. The gate found no Directive overflow, broken media, console errors, page errors, failed requests or HTTP failures. Keyboard launch moves focus into the view, route keys rove, Escape closes and restores the current launcher, and reduced-motion styles resolve to effectively zero duration.
+- Side-by-side review used current Directive conformance renders, not the earlier simplified Sonder UI. The LCARS tokens and responsive shell align; route workspace parity remains in progress for the missing structures named above. On desktop, Sonder's host-owned Stories sidebar remains beside the registered extension view, while current Directive's standalone documentation renders are centered on a black canvas; on mobile the host sidebar is off-canvas and Directive occupies the viewport.
 
 ## Decisions and non-blockers
 

@@ -287,7 +287,7 @@ def test_current_sonder_serves_the_directive_module_graph_and_lcars_styles(live_
 
     assert 'Sonder._loadModule("directive"' in script
     assert "createDirectiveView" in app_module
-    assert "@media (max-width: 720px)" in styles
+    assert "@media (max-width: 640px)" in styles
     assert "prefers-reduced-motion" in styles
 
 
