@@ -1,0 +1,23 @@
+[project]
+name = "directive-sonder-engine"
+version = "0.1.0"
+description = "Directive campaign extension for Sonder Engine"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8,<10",
+]
+browser = [
+  "playwright>=1.50,<2",
+  "pytest-playwright>=0.7,<1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers"
+markers = [
+  "integration: tests against a configured Sonder Engine checkout",
+]
+

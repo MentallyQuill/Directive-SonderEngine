@@ -1,0 +1,32 @@
+{
+  "id": "directive",
+  "version": "0.1.0",
+  "ext_api": 1,
+  "name": "Directive",
+  "description": "A Star Trek command campaign layer for Sonder Engine.",
+  "capabilities": {
+    "chat_state": true,
+    "char_state": true,
+    "characters": ["observe"],
+    "routing": true,
+    "commit_domains": ["settlement"],
+    "routes": [
+      {
+        "method": "POST",
+        "path": "/start",
+        "description": "Provision Ashes of Peace as a complete Sonder story."
+      },
+      {
+        "method": "GET",
+        "path": "/projection",
+        "description": "Read Directive's player-safe campaign projection."
+      }
+    ],
+    "python": "extension.py",
+    "ui": {
+      "module": "ui/index.js",
+      "css": "ui/directive.css"
+    }
+  }
+}
+

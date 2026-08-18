@@ -45,10 +45,12 @@ def test_manifest_declares_a_native_sonder_extension(repo_root):
     assert manifest["ext_api"] == 1
     assert manifest["capabilities"]["python"] == "extension.py"
 
-def test_register_delegates_to_routes(fake_api):
+def test_register_delegates_to_routes(fake_api, monkeypatch):
     import extension
+    called = []
+    monkeypatch.setattr(extension.routes, "register", lambda api: called.append(api))
     extension.register(fake_api)
-    assert ("POST", "/start") in fake_api.routes
+    assert called == [fake_api]
 ```
 
 - [ ] **Step 2: Run it and confirm RED**
@@ -59,7 +61,7 @@ Expected: failure because `manifest.json` and `extension.py` do not exist.
 
 - [ ] **Step 3: Add the minimal package**
 
-`manifest.json` declares id `directive`, version `0.1.0`, ext API 1, Python `extension.py`, an ES-module UI entry, CSS, chat state, commit domains and `/start`/projection routes. `extension.register` imports and calls `directive.routes.register(api)`; no engine internals are imported.
+`manifest.json` declares id `directive`, version `0.1.0`, ext API 1, Python `extension.py`, an ES-module UI entry, CSS, chat state, commit domains and `/start`/projection route disclosures. `extension.register` imports and calls `directive.routes.register(api)`; the initial route registry is empty until Task 5, and no engine internals are imported.
 
 - [ ] **Step 4: Run GREEN**
 
@@ -277,4 +279,3 @@ git commit -m "docs: record provisioning milestone"
 - Spec coverage: native package, strict state ownership, selected authored data, archive compilation, atomic provisioning and clean verification are covered.
 - Placeholder scan: no TBD/TODO/deferred implementation steps remain in this phase.
 - Interface consistency: Task 3 produces `AshesSource`; Task 4 consumes it and produces `ProvisioningBundle`; Task 5 is the only consumer of the bundle's host-facing fields.
-
