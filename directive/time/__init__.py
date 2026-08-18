@@ -1,0 +1,1 @@
+"""Directive ship-time derivation."""

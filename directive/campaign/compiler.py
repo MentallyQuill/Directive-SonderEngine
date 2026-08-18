@@ -14,6 +14,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from ..command.bearing import create_bearing
 from ..state.contracts import (
     CAMPAIGN_ID,
     PACKAGE_ID,
@@ -22,6 +23,7 @@ from ..state.contracts import (
     CrewDomain,
     FrameState,
 )
+from ..time.clock import derive_ship_time
 from .source import AshesSource, MISSION_ORDER
 
 
@@ -370,8 +372,22 @@ def compile_ashes_archive(
         },
         "settlement": {"status": "idle"},
         "ship": {"cohesion": 50},
-        "command": {"player_billet": "Executive Officer", "player_rank": "Commander"},
-        "time": {"minute_of_day": 510, "stardate": 53068.4, "year": 2376},
+        "command": {
+            "player_billet": "Executive Officer",
+            "player_rank": "Commander",
+            "bearing": create_bearing(),
+        },
+        "time": {
+            "year": 2376,
+            "ledger": derive_ship_time(
+                {"elapsed_seconds": 0},
+                opening_minute_of_day=510,
+                opening_stardate=53068.4,
+                stardate_per_day=float(
+                    (((source.campaign.get("world") or {}).get("layout") or {}).get("stardatePerDay") or 1)
+                ),
+            ),
+        },
     }).to_dict()
     director, narration = _contexts(source)
     return ProvisioningBundle(

@@ -119,6 +119,29 @@ def test_bundle_contains_every_atomic_provisioning_argument():
     assert "player/profile" in kwargs["documents"]
 
 
+def test_frame_state_starts_with_domain_authority_derived_from_the_host_epoch():
+    frame = compile_bundle().frame_state
+
+    assert frame["command"]["bearing"] == {
+        "kind": "directive.commandBearing.v1",
+        "version": 1,
+        "balance": 0,
+        "capacity": 3,
+        "awards": {},
+        "spends": {},
+    }
+    assert frame["time"]["ledger"] == {
+        "kind": "directive.timeLedger.v1",
+        "elapsed_seconds": 0,
+        "stardate": 53068.4,
+        "ship_clock": {
+            "second_of_day": 30600,
+            "minute_of_day": 510,
+            "display": "08:30:00",
+        },
+    }
+
+
 def test_bundle_is_plain_json_and_does_not_import_sonder_to_compile():
     bundle = compile_bundle()
 
