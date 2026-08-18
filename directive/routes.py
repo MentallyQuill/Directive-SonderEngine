@@ -22,8 +22,12 @@ def _start(api, request):
     body = request.body
     if not isinstance(body, dict):
         raise ProvisioningError("player setup must be an object")
-    player = PlayerSetup.from_dict(body)
-    bundle = compile_ashes_archive(load_ashes_source(), player)
+    values = dict(body)
+    simulation_mode = values.pop("simulation_mode", "Command")
+    player = PlayerSetup.from_dict(values)
+    bundle = compile_ashes_archive(
+        load_ashes_source(), player, simulation_mode=simulation_mode
+    )
     result = api.provision_story(
         bundle.archive,
         **bundle.provision_kwargs(),

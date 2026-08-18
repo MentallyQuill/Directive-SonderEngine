@@ -16,6 +16,7 @@ from typing import Any
 
 from ..command.bearing import create_bearing
 from ..mission.state import create_mission_state
+from ..simulation.policy import simulation_policy
 from ..state.contracts import (
     CAMPAIGN_ID,
     PACKAGE_ID,
@@ -261,12 +262,13 @@ def _documents(source: AshesSource, player: PlayerSetup) -> dict[str, Any]:
     return documents
 
 
-def _contexts(source: AshesSource) -> tuple[dict[str, str], str]:
+def _contexts(source: AshesSource, simulation_mode: str) -> tuple[dict[str, str], str]:
     campaign = source.campaign.get("campaign") or {}
     opening = campaign.get("openingContext") or {}
     first_guidance = "\n".join(
         f"- {item}" for item in opening.get("firstSceneGuidance") or ()
     )
+    simulation_constraint = str(simulation_policy(simulation_mode)["director_constraint"])
     director = {
         "establish": (
             "Use only facts present in the provisioned campaign documents and committed "
@@ -279,7 +281,8 @@ def _contexts(source: AshesSource) -> tuple[dict[str, str], str]:
         "resolve": (
             "Preserve actor-only player authority. Resolve world and non-player response "
             "without inventing player speech or ratifying unsupported campaign facts.\n"
-            f"Opening scene rules:\n{first_guidance}"
+            f"Opening scene rules:\n{first_guidance}\n"
+            f"Campaign simulation policy:\n{simulation_constraint}"
         ),
     }
     narration = (
@@ -293,6 +296,8 @@ def _contexts(source: AshesSource) -> tuple[dict[str, str], str]:
 def compile_ashes_archive(
     source: AshesSource,
     player: PlayerSetup,
+    *,
+    simulation_mode: str = "Command",
 ) -> ProvisioningBundle:
     """Return the complete, atomic turn-zero input for ``provision_story``."""
     source.validate()
@@ -362,7 +367,9 @@ def compile_ashes_archive(
         "schema": 1,
         "campaign_id": CAMPAIGN_ID,
         "package": {"id": PACKAGE_ID, "version": PACKAGE_VERSION},
-        "settings": {},
+        "settings": {
+            "simulation_mode": simulation_policy(simulation_mode)["label"],
+        },
     }).to_dict()
     frame_state = FrameState.from_dict({
         "kind": "directive.frameState.v1",
@@ -391,7 +398,7 @@ def compile_ashes_archive(
             ),
         },
     }).to_dict()
-    director, narration = _contexts(source)
+    director, narration = _contexts(source, simulation_mode)
     return ProvisioningBundle(
         archive=archive,
         state=state,

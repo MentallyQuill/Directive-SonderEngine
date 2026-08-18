@@ -10,7 +10,7 @@ This repository is a hard cutover. It does not embed, call, or emulate
 SillyTavern, and it does not maintain a second transcript, identity system,
 provider layer, checkpoint store, or world timeline beside Sonder.
 
-## Current milestone
+## Current migration state
 
 - Installable Sonder extension API 1 package.
 - Strict Directive chat, frame, and crew-state contracts.
@@ -18,11 +18,21 @@ provider layer, checkpoint store, or world timeline beside Sonder.
   cohesion data.
 - Deterministic archive compiler for one persona and seven senior officers.
 - `POST /start` using exactly one `api.provision_story` call.
+- Closed-candidate mission and ship settlement bound to the committing Sonder
+  turn, with deterministic objectives, consequences, Command Bearing, ship
+  work, capabilities, cohesion, and mission-chain transitions.
+- Player-safe aggregate projection joined to Sonder identity by stable id.
+- Command and Exploration simulation policies stored as campaign state and
+  injected through Sonder's Director resolve context.
+- Native ES-module LCARS application with creation, Campaign, Mission, Ship,
+  Crew, and People views, plus the 37 package-referenced Breckenridge assets.
 - Live integration proof against the pinned current Sonder checkout, including
-  byte-identical database refusal for invalid turn-zero documents.
+  byte-identical database refusal for invalid turn-zero documents, extension
+  UI asset serving, and transactional commit-domain advancement.
 
-Mission settlement, ship mechanics, player-safe aggregate projections, the
-LCARS UI, and full branch/replay proofs remain active migration work. See
+Generated cohesion scheduling, people-event authoring, expanded creator assist,
+adversarial secret-safety coverage, browser geometry, and full branch/replay
+round trips remain active migration work. See
 [`docs/MIGRATION_STATUS.md`](docs/MIGRATION_STATUS.md) and
 [`docs/MIGRATION_RESPONSIBILITY_MATRIX.md`](docs/MIGRATION_RESPONSIBILITY_MATRIX.md).
 

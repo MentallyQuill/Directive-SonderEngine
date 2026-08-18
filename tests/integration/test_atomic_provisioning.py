@@ -88,6 +88,17 @@ def test_start_route_provisions_once_with_every_turn_zero_value():
     }
 
 
+def test_start_route_accepts_simulation_mode_outside_player_identity():
+    api = RecordingAPI()
+    routes.register(api)
+    body = player_payload()
+    body["simulation_mode"] = "Exploration"
+
+    api.routes[("POST", "/start")](Request(body))
+
+    assert api.provision_calls[0][1]["state"]["settings"]["simulation_mode"] == "Exploration"
+
+
 def test_start_route_refuses_an_invalid_body_before_provisioning():
     api = RecordingAPI()
     routes.register(api)
@@ -261,3 +272,18 @@ def test_current_sonder_commit_domain_advances_exactly_the_bound_turn(
     assert committed["mission"]["revision"] == 1
     assert "event.prelude.command-handover-terms-settled" in committed["mission"]["events"]
     assert results["ext:directive:settlement"]["applied"] == 1
+
+
+def test_current_sonder_serves_the_directive_module_graph_and_lcars_styles(live_sonder):
+    extension_runtime, _api, _db, _path = live_sonder
+
+    script = extension_runtime.extension_script("directive")
+    styles = extension_runtime.extension_styles("directive")
+    app_module = extension_runtime.asset_path("directive", "ui/app.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'Sonder._loadModule("directive"' in script
+    assert "createDirectiveView" in app_module
+    assert "@media (max-width: 720px)" in styles
+    assert "prefers-reduced-motion" in styles

@@ -27,20 +27,20 @@
 | Repository, test harness and extension package | Verified | Package tests plus current Sonder discovery/activation in the live provisioning fixture |
 | Complete responsibility inventory | Assessed | `MIGRATION_RESPONSIBILITY_MATRIX.md` covers all production directories and support areas |
 | Atomic Ashes provisioning | Verified | Current Sonder provisions persona, seven crew, scene, state, authority, contexts, documents and provenance; invalid documents leave the database byte-identical |
-| Directive state schemas/domain services | In progress | Strict immutable chat/frame/crew contracts verified; domain reducers remain |
-| Settlement on Sonder committed lineage | Assessed | Reroll/branch/rollback/source-binding integration |
-| Player authority and campaign validators | Assessed | Successful single correction and still-invalid fail-closed no-commit proof |
-| Missions, objectives, evidence, consequences | Assessed | Ported behavioral scenarios and transition tests |
-| Ship mechanics, cohesion and assignments | Assessed | Deterministic state/projection tests |
-| Time and Stardate | Assessed | Host-clock derivation and narration non-authority tests |
-| People and crew joins | Assessed | Stable-id/alias/duplicate-name/private-fact tests |
-| Aggregate player-safe projections | Assessed | Allowlist and missing-value contract tests |
-| LCARS UI and interactions | Assessed | Browser desktop/mobile/keyboard/focus/reduced-motion tests |
-| Campaign lifecycle/settings/notices | Assessed | Browser and route tests |
+| Directive state schemas/domain services | In progress | Strict chat/frame/crew, mission, Command Bearing, ship/cohesion, time, journey, and simulation-policy tests pass; generated cohesion and people-event domains remain |
+| Settlement on Sonder committed lineage | Verified | Closed candidates, exact turn/hash binding, idempotence, fail-closed commit domain, and current-host transactional advancement |
+| Player authority and campaign validators | In progress | Sonder `actor_only` plus Directive surviving-dialogue correction unit proof; still-invalid live no-commit and secret adversarial matrix remain |
+| Missions, objectives, evidence, consequences | In progress | All 13 definitions validate; deterministic reducer and journey/capability transitions pass; complete authored scenario matrix remains |
+| Ship mechanics, cohesion and assignments | In progress | Authored work ladders, constraints, capabilities, 20-segment cohesion, projection, and replay pass; generated issue scheduler remains |
+| Time and Stardate | Verified | Host-clock derivation, rollover, projection, and narration non-authority tests |
+| People and crew joins | In progress | Seven stable-id joins and public allowlist pass; runtime-observed people events/dossier authoring remain |
+| Aggregate player-safe projections | Verified | Mission, journey, ship, time, Bearing, crew and media allowlists; hidden/private omission tests |
+| LCARS UI and interactions | Implemented | ES-module host asset serving, syntax, mount, route, mobile CSS, focus-ring and reduced-motion contracts pass; live browser binding failed before visual geometry proof |
+| Campaign lifecycle/settings/notices | In progress | Atomic start, host open, simulation mode selection and settings copy implemented; notices and campaign management polish remain |
 | Branch/replay/checkpoint/export | Assessed | Sonder integration round trips |
 | Optional one-way legacy importer | Not assessed | Separate product decision; not a native-runtime dependency |
 | SillyTavern removal audit | In progress | Foundation runtime audit is clean; later runtime/UI phases remain |
-| Full clean regression | Not assessed | Complete target suite and browser gate from clean checkout |
+| Full clean regression | In progress | 101 Python tests, compileall and JS syntax pass; clean-checkout and browser gates remain |
 
 ## Verified current Sonder facilities
 
@@ -57,12 +57,15 @@ Current Sonder source and tests provide the migration's required host seams:
 
 No upstream Sonder blocker is currently proven. Historical gap reports under `docs/design` were not used as requirements.
 
-## Executable evidence at the provisioning milestone
+## Latest executable evidence
 
-- `C:\Python313\python.exe -m pytest -q --basetemp=.tmp/pytest-full --disable-warnings`: **40 passed**.
-- Current-host focused integration: **4 passed**, including real extension discovery, route dispatch, archive import/readback, and pre-import refusal with an unchanged database hash.
-- `C:\Python313\python.exe -m compileall -q directive extension.py`: passed.
-- Foundation forbidden-dependency scan across `directive`, `extension.py`, `manifest.json`, and `ui`: no runtime matches.
+- `C:\Python313\python.exe -m pytest -q --basetemp=.tmp/pytest-ui-full --disable-warnings`: **101 passed** (150 warnings from the pinned Sonder host's current Pydantic deprecations).
+- Current-host integration covers discovery/activation, route dispatch, archive import/readback, an unchanged database hash on invalid input, player projection, exact-turn settlement commit, and ES-module/CSS serving.
+- `C:\Python313\python.exe -m compileall -q directive tests`: passed.
+- `node --check ui/app.js` and `node --check ui/index.js`: passed.
+- Runtime forbidden-dependency scan has no SillyTavern/provider/parallel-timeline imports; only the authored-source rejection list names retired countdown keys.
+- All 37 assets referenced by the Ashes package were copied with zero SHA-256 mismatches from the pinned Directive checkout.
+- Live browser verification is not claimed: browser control failed during setup with `Trusted RPC dependency must resolve within a configured trusted code path` before any browser was selected.
 
 ## Decisions and non-blockers
 

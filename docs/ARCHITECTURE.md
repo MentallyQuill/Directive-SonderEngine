@@ -98,7 +98,7 @@ Narration is never evidence or time authority. The final Director result and Son
 
 All Directive campaigns provision `actor_only`. Sonder deterministically downgrades player-authored effects on the world and other characters to contestable attempts without deleting the player's words.
 
-Directive additionally registers fail-closed validators for stricter product invariants, including invented player dialogue, action, thought, emotion, reaction, intention or choice; impossible campaign transitions; and protected Directive state encoded in an invalid result. Validators receive deep-copied merged results after Sonder floors, return structured corrections, never mutate output, and leave the bounded retry to Sonder.
+Directive additionally registers a fail-closed post-floor validator for any surviving player dialogue. The host's `actor_only` policy remains authoritative for player action, thought, emotion, reaction, intention, and choice. The validator receives a deep-copied merged result, returns a structured correction, never mutates output, and leaves the single bounded retry to Sonder. Further campaign-secret adversarial coverage remains migration work; it is not represented here as already implemented.
 
 ## People and crew
 
@@ -112,9 +112,9 @@ Sonder's simulation clock is the sole generic time authority. Directive owns the
 
 ## UI
 
-Directive uses a Sonder ES-module entry and registered full-window view, toolbar launcher, settings section and standing notices. The LCARS application keeps Campaign, Mission, People, Ship and Settings as product routes. It uses Sonder's lifecycle and native story controls for opening, branching, rerolling and narration variants.
+Directive uses a Sonder ES-module entry and registered full-window view, toolbar launcher, settings section, and settlement step renderer. The LCARS application currently provides Campaign, Mission, Ship, Crew, and People routes. Campaign creation opens the resulting story through Sonder's declared chat lifecycle. Sonder retains its native controls for branching, rerolling, and narration variants rather than Directive duplicating them.
 
-All gameplay data is fetched from Directive routes that assemble player-safe DTOs. Presentation state never writes campaign truth. The UI must preserve keyboard navigation, focus containment/restoration, tooltips, reduced motion and responsive mobile/desktop layouts.
+All gameplay data is fetched from Directive routes that assemble player-safe DTOs. Presentation state never writes campaign truth. The implemented surface has native button focus rings, reduced-motion rules, and mobile/desktop layouts. Live browser geometry and focus-restoration proof remains outstanding because the available browser-control runtime failed before browser binding during this migration run.
 
 ## Legacy data
 
@@ -125,4 +125,3 @@ Normal runtime is Sonder-native only. A SillyTavern save importer is outside the
 1. **Fork Sonder Engine.** Rejected because current extension surfaces provide provisioning, transactions, validators, identity projections, documents and UI mounts; a fork would duplicate ownership and make updates expensive.
 2. **Port Directive's browser runtime unchanged.** Rejected because its accepted-pair, storage, provider and host layers exist to compensate for SillyTavern and would create parallel authorities.
 3. **Treat Directive as lore only.** Rejected because deterministic mission, ship, Command Bearing, settlement and player-safety rules require validated namespaced state and transactional writes.
-

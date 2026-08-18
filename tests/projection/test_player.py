@@ -26,6 +26,7 @@ class Store:
 class API:
     def __init__(self):
         self._frame = Store(frame())
+        self._state = Store({"settings": {"simulation_mode": "Command"}})
         self.states = {
             11: Store({
                 "kind": "directive.crewDomain.v1", "schema": 1,
@@ -37,6 +38,9 @@ class API:
 
     def frame_state(self, chat_id):
         return self._frame
+
+    def state(self, chat_id):
+        return self._state
 
     def player_view(self, chat_id, viewer):
         return {
@@ -66,6 +70,15 @@ def test_projection_joins_directive_crew_only_by_stable_recognized_host_id():
         "role": "Commanding Officer",
         "department": "command",
         "public_record": {"birthplace": "Kingston, Ontario, Earth"},
+        "media": {
+            "kind": "crew.portrait.formal",
+            "alt": "Captain Mara Whitaker",
+            "variants": {
+                "detail": "/api/extensions/directive/asset/assets/packages/breckenridge/images/crew/mara-whitaker.detail.webp",
+                "card": "/api/extensions/directive/asset/assets/packages/breckenridge/images/crew/mara-whitaker.card.webp",
+                "thumb": "/api/extensions/directive/asset/assets/packages/breckenridge/images/crew/mara-whitaker.thumb.webp",
+            },
+        },
     }
     assert stranger == {
         "id": "body:unknown-1",

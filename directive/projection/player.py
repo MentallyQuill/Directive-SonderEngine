@@ -18,6 +18,32 @@ _CREW_FIELDS = (
 )
 
 
+def _asset_url(path: Any) -> str | None:
+    value = str(path or "").replace("\\", "/").lstrip("/")
+    if not value.startswith("assets/packages/breckenridge/images/") or ".." in value.split("/"):
+        return None
+    return f"/api/extensions/directive/asset/{value}"
+
+
+def _media() -> dict[str, dict[str, Any]]:
+    records = (load_ashes_source().campaign.get("assets") or {}).get("images") or ()
+    result = {}
+    for record in records:
+        variants = {
+            key: url
+            for key, path in (record.get("variants") or {}).items()
+            if (url := _asset_url(path)) is not None
+        }
+        subject_id = str(record["subjectId"])
+        if variants and (subject_id not in result or record.get("kind") == "ship.hero"):
+            result[subject_id] = {
+                "kind": record.get("kind"),
+                "alt": record.get("alt"),
+                "variants": variants,
+            }
+    return result
+
+
 def _definition(definition_id: str):
     return next(
         (mission for mission in load_ashes_source().missions if mission.get("id") == definition_id),
@@ -68,7 +94,7 @@ def _mission_projection(state: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _people(api, chat_id: int, player_view: Mapping[str, Any]) -> list[dict[str, Any]]:
+def _people(api, chat_id: int, player_view: Mapping[str, Any], media: Mapping[str, Any]) -> list[dict[str, Any]]:
     output = []
     for raw in player_view.get("people") or ():
         if not isinstance(raw, Mapping):
@@ -84,6 +110,8 @@ def _people(api, chat_id: int, player_view: Mapping[str, Any]) -> list[dict[str,
                     if field in domain
                 }
                 if allowed:
+                    if domain.get("crew_id") in media:
+                        allowed["media"] = copy.deepcopy(media[domain["crew_id"]])
                     person["directive"] = allowed
         output.append(person)
     return output
@@ -155,9 +183,11 @@ def _transition_projection(value: Any) -> dict[str, Any] | None:
 def create_player_projection(api, chat_id: int) -> dict[str, Any]:
     player = api.player_view(chat_id, "player")
     frame = api.frame_state(chat_id).get() or {}
+    campaign_state = api.state(chat_id).get() or {}
     mission = frame.get("mission") or {}
     settlement = frame.get("settlement") or {}
     campaign = load_ashes_source().campaign.get("campaign") or {}
+    media = _media()
     projection = {
         "kind": "directive.playerProjection.v1",
         "schema": 1,
@@ -165,6 +195,11 @@ def create_player_projection(api, chat_id: int) -> dict[str, Any]:
         "campaign": {
             "id": "ashes-of-peace",
             "title": campaign.get("title"),
+            "simulation_mode": (campaign_state.get("settings") or {}).get("simulation_mode"),
+        },
+        "media": {
+            "ship": copy.deepcopy(media.get("uss-breckenridge")),
+            "location": copy.deepcopy(media.get("asterion-station")),
         },
         "viewer": copy.deepcopy(player.get("viewer") or {}),
         "mission": _mission_projection(mission),
@@ -183,7 +218,7 @@ def create_player_projection(api, chat_id: int) -> dict[str, Any]:
         ),
         "command_bearing": project_bearing((frame.get("command") or {}).get("bearing")),
         "time": project_time((frame.get("time") or {}).get("ledger")),
-        "people": _people(api, int(chat_id), player),
+        "people": _people(api, int(chat_id), player, media),
     }
     for field in ("turn", "location", "perception", "knows"):
         if field in player:

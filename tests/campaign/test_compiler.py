@@ -158,6 +158,20 @@ def test_bundle_is_plain_json_and_does_not_import_sonder_to_compile():
     json.dumps(bundle.provision_kwargs())
 
 
+def test_simulation_mode_is_campaign_state_and_provider_independent_context():
+    exploration = compile_ashes_archive(
+        load_ashes_source(),
+        PlayerSetup.from_dict(player_payload()),
+        simulation_mode="Exploration",
+    )
+
+    assert exploration.state["settings"]["simulation_mode"] == "Exploration"
+    constraint = exploration.director_context["resolve"]
+    assert "do not kill the player or senior staff" in constraint.lower()
+    assert "preset" not in constraint.lower()
+    assert "accepted pair" not in constraint.lower()
+
+
 def test_persona_resource_uid_changes_when_player_identity_changes():
     first = compile_bundle().archive["resources"]["persona"]["resource_uid"]
     changed = player_payload()
