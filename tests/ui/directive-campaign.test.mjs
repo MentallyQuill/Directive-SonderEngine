@@ -46,9 +46,16 @@ test("Campaign switches Command, Library, and Records without inventing missing 
   assert.doesNotMatch(view.textContent, /Asterion Station/);
 
   const modeButtons = [...view.querySelectorAll("[data-campaign-mode]")];
+  const modePanel = view.querySelector(".directive-campaign-mode-panel");
+  assert.ok(modeButtons.every((button) => button.id));
+  assert.ok(modeButtons.every((button) => button.getAttribute("aria-controls") === modePanel?.id));
+  assert.equal(modePanel?.getAttribute("role"), "tabpanel");
+  assert.ok(modePanel?.id);
+  assert.equal(modePanel?.getAttribute("aria-labelledby"), modeButtons[0].id);
   dispatchKeyboard(fixture.window, modeButtons[0], "ArrowRight");
   assert.equal(state.mode, "library");
   assert.equal(fixture.document.activeElement, modeButtons[1]);
+  assert.equal(modePanel?.getAttribute("aria-labelledby"), modeButtons[1].id);
   assert.match(view.querySelector(".directive-package-card")?.className || "", /\bdirective-package-card\b/);
   assert.match(view.textContent, /Installed campaign package/);
 

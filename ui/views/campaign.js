@@ -11,15 +11,19 @@ export function renderCampaignView(data = {}, state = {}, actions = {}) {
   commandBar.setAttribute("aria-label", "Campaign workspace modes");
   commandBar.setAttribute("role", "tablist");
   const panel = createElement("div", "directive-campaign-mode-panel");
+  panel.id = "directive-campaign-mode-panel";
   panel.dataset.campaignPanel = "command";
+  panel.setAttribute("role", "tabpanel");
   const initialMode = CAMPAIGN_MODES.some(({ id }) => id === state.mode) ? state.mode : "command";
   state.mode = initialMode;
 
   const controls = CAMPAIGN_MODES.map(({ id, label }, index) => {
     const button = appendText(createElement("button", "campaign-command"), label);
+    button.id = `directive-campaign-mode-${id}-tab`;
     button.type = "button";
     button.dataset.campaignMode = id;
     button.setAttribute("role", "tab");
+    button.setAttribute("aria-controls", panel.id);
     button.addEventListener("click", () => activate(id));
     button.addEventListener("keydown", (event) => {
       const nextIndex = nextModeIndex(index, event.key, controls.length);
@@ -45,6 +49,7 @@ export function renderCampaignView(data = {}, state = {}, actions = {}) {
       control.tabIndex = selected ? 0 : -1;
       setClassState(control, "campaign-command-primary", selected);
     });
+    panel.setAttribute("aria-labelledby", controls.find((control) => control.dataset.campaignMode === mode).id);
     panel.dataset.campaignPanel = mode;
     panel.replaceChildren(renderMode(mode, data, actions));
     if (notify) actions.onModeChange?.(mode);

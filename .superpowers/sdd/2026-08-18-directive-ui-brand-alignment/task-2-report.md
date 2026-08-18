@@ -205,3 +205,57 @@ Result: all exited 0; Git emitted only line-ending conversion notices.
 ### Review Fix Concerns
 
 - Browser-computed geometry and the visual styling of the new media placeholder remain part of Task 4's 1440x900/390x844 rendered parity gate.
+
+## Review Fix Round 2
+
+### Finding Addressed
+
+Completed the Campaign workspace's tab semantics. Command, Library, and Records now have stable tab IDs and matching `aria-controls`; the shared mode region has a stable ID, `role="tabpanel"`, and an `aria-labelledby` value that follows the currently selected tab.
+
+### RED Evidence
+
+Command:
+
+```text
+node --test --test-name-pattern="Campaign switches" tests/ui/directive-campaign.test.mjs
+```
+
+Result: exit 1. The first new relationship assertion failed because every Campaign tab had an empty `id`, proving the rendered tabs could not own or label the mode panel.
+
+### GREEN Evidence
+
+Focused behavior gate:
+
+```text
+node --test tests/ui/directive-campaign.test.mjs tests/ui/directive-shell.test.mjs
+```
+
+Result: exit 0; 8 passed, 0 failed. The Campaign test verifies all tab IDs, shared `aria-controls`, tabpanel role/ID, initial Command labeling, and Library labeling after real ArrowRight focus/activation.
+
+Python UI contract gate:
+
+```text
+py -3.13 -m pytest tests/ui --basetemp .tmp/pytest-task2-review2-ui
+```
+
+Result: exit 0; 5 passed, 0 failed.
+
+Additional checks:
+
+```text
+node --check ui/views/campaign.js
+git diff --check
+```
+
+Result: both exited 0; Git emitted only line-ending conversion notices.
+
+### Review Fix Self-Review
+
+- Verified each Campaign tab is a real `role="tab"` with a unique stable ID and points to the same stable mode panel ID.
+- Verified the panel is a `role="tabpanel"` and its `aria-labelledby` changes in the same activation branch that updates `aria-selected`, roving tabindex, mode state, and rendered content.
+- Verified same-index and keyboard behavior from the existing shell/Campaign tests remain unchanged.
+- No other production or test surface changed in this round.
+
+### Review Fix Concerns
+
+- None specific to round 2.
