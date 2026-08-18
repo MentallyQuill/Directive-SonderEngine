@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..command.bearing import create_bearing
+from ..mission.state import create_mission_state
 from ..state.contracts import (
     CAMPAIGN_ID,
     PACKAGE_ID,
@@ -365,11 +366,7 @@ def compile_ashes_archive(
         "schema": 1,
         "campaign_id": CAMPAIGN_ID,
         "package_version": PACKAGE_VERSION,
-        "mission": {
-            "id": MISSION_ORDER[0],
-            "status": "active",
-            "journey_index": 0,
-        },
+        "mission": create_mission_state(source.missions[0], branch_id="frame.root"),
         "settlement": {"status": "idle"},
         "ship": {"cohesion": 50},
         "command": {

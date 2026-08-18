@@ -122,6 +122,10 @@ def test_bundle_contains_every_atomic_provisioning_argument():
 def test_frame_state_starts_with_domain_authority_derived_from_the_host_epoch():
     frame = compile_bundle().frame_state
 
+    assert frame["mission"]["kind"] == "directive.missionState.v1"
+    assert frame["mission"]["definitionId"] == "mission.prelude-a-ship-underway"
+    assert frame["mission"]["branchId"] == "frame.root"
+    assert frame["mission"]["revision"] == 0
     assert frame["command"]["bearing"] == {
         "kind": "directive.commandBearing.v1",
         "version": 1,
