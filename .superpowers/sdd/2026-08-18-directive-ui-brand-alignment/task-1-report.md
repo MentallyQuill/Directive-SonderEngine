@@ -100,3 +100,78 @@ Result: all exit 0. The copied stylesheet matches the authoritative source after
 
 - Browser geometry at 1440x900 and 390x844 is not part of Task 1's commanded gate; this task establishes the shell/CSS contract for the later visual conformance task.
 - Six full-suite integration cases remain skipped because the external configured Sonder checkout is unavailable at the test fixture's expected path; no Task 1 test is skipped.
+
+## Review Fix Round 1
+
+### Findings Addressed
+
+1. Replaced the handwritten `DocumentFixture`/`ElementFixture` and custom dispatch implementation with a standards-compliant `happy-dom` `Window` and `Document`. The test now exercises actual `HTMLElement`, `NodeList`, `KeyboardEvent`, event bubbling, cancelability/default prevention, focus tracking, and native `.click()` behavior.
+2. Matched the authoritative `expanded-interface-focus.js` behavior: ArrowLeft/ArrowRight (and the existing Home/End branches) focus and automatically activate the destination route by invoking its real click path.
+3. Added minimal Node package metadata and pinned `happy-dom` `20.11.2` as a development-only dependency. Production modules remain dependency-free.
+
+### Finding 1 RED and GREEN
+
+RED command:
+
+```text
+node --test tests/ui/directive-shell.test.mjs
+```
+
+RED result: exit 1. After changing the behavior test to call the standards `dispatchEvent()` boundary, the handwritten fixture failed with `TypeError: controls[1].dispatchEvent is not a function` at the first ArrowRight event. This directly reproduced the review finding that the fake element was not a DOM event target.
+
+GREEN command after installing the pinned test dependency and replacing the fixture:
+
+```text
+node --test tests/ui/directive-shell.test.mjs
+```
+
+GREEN result: exit 0; 1 passed, 0 failed. The shell was mounted in the library document so platform focus tracking and bubbling were observable.
+
+### Finding 2 RED and GREEN
+
+RED command after changing only the arrow-route expectation:
+
+```text
+node --test tests/ui/directive-shell.test.mjs
+```
+
+RED result: exit 1. The assertion expected `['people']` after ArrowRight from Mission but received `[]`, proving the current production branch moved focus without activating the route.
+
+GREEN command after invoking the destination control's click path from the arrow branch:
+
+```text
+node --test tests/ui/directive-shell.test.mjs
+```
+
+GREEN result: exit 0; 1 passed, 0 failed. ArrowRight selected People and ArrowLeft selected Mission while preserving focus; Enter and Space independently reactivated the focused control.
+
+### Covering Verification
+
+```text
+node --test tests/ui/directive-shell.test.mjs
+py -3.13 -m pytest tests/ui/test_ui_contract.py --basetemp .tmp/pytest-task1-review1
+node --check ui/shell.js
+git diff --check
+```
+
+Results: focused shell 1 passed; Python UI contract 5 passed; syntax and diff checks exited 0. The real-DOM test explicitly asserts `defaultPrevented` for ArrowRight, Enter, and Escape, and proves ArrowRight and Escape bubble through the shell event path.
+
+### Review Fix Files
+
+- `tests/ui/directive-shell.test.mjs`
+- `ui/shell.js`
+- `package.json`
+- `package-lock.json`
+- `.superpowers/sdd/2026-08-18-directive-ui-brand-alignment/task-1-report.md`
+
+### Review Fix Self-Review
+
+- Compared the production branch against the complete authoritative helper: destination focus occurs before activation, and activation uses the control click path.
+- Confirmed the handwritten DOM classes and custom dispatch helper are fully removed.
+- Confirmed `happy-dom` is pinned under `devDependencies`, `npm ls --depth=0` resolves exactly `happy-dom@20.11.2`, and no production module imports it.
+- Confirmed arrow activation updates callback history, `data-active-route`, `aria-selected`, `aria-current`, route heading/path, and roving `tabIndex` through the same click path as pointer activation.
+- Mutation check: removing destination `.click()` returns the exact `actual [] / expected ['people']` RED; returning to fake elements returns the exact missing `dispatchEvent()` RED.
+
+### Review Fix Concerns
+
+- Consumers running the Node shell test must run `npm install`/`npm ci` first; package metadata and the lockfile now make that requirement deterministic.

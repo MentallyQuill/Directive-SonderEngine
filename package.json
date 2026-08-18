@@ -1,0 +1,8 @@
+{
+  "name": "directive-sonder-engine",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "happy-dom": "20.11.2"
+  }
+}

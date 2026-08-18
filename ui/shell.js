@@ -78,6 +78,7 @@ export function createDirectiveShell({
         controls[targetIndex].tabIndex = 0;
         controls.forEach((item, itemIndex) => { if (itemIndex !== targetIndex) item.tabIndex = -1; });
         controls[targetIndex].focus?.({ preventScroll: true });
+        controls[targetIndex].click?.();
         return;
       }
       if (event?.key === "Enter" || event?.key === " ") activate(event);
