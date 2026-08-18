@@ -175,3 +175,64 @@ Results: focused shell 1 passed; Python UI contract 5 passed; syntax and diff ch
 ### Review Fix Concerns
 
 - Consumers running the Node shell test must run `npm install`/`npm ci` first; package metadata and the lockfile now make that requirement deterministic.
+
+## Review Fix Round 2
+
+### Finding Addressed
+
+The round-1 destination click was unconditional for every recognized roving key. `nextRouteIndex()` returns the current index for Home on Campaign and End on Settings, so those boundary keys incorrectly prevented the native event and re-fired the active route callback. The authoritative helper returns before default prevention, focus changes, or activation when the destination equals the current index.
+
+### RED Evidence
+
+Added real-DOM boundary expectations for both endpoints:
+
+- End on active Settings does not prevent default, change route, or invoke `onSelectRoute`.
+- Home on active Campaign does not prevent default, change route, or invoke `onSelectRoute`.
+
+Command:
+
+```text
+node --test tests/ui/directive-shell.test.mjs
+```
+
+Result: exit 1. The first new boundary assertion failed with `true !== false` at `endAtSettings.defaultPrevented`, proving current production entered the activation branch for a same-index destination.
+
+### GREEN Evidence
+
+Added the authoritative same-index return immediately after resolving the target index and before `preventDefault()`, focus, or click activation.
+
+Command:
+
+```text
+node --test tests/ui/directive-shell.test.mjs
+```
+
+Result: exit 0; 1 passed, 0 failed. Both End/Settings and Home/Campaign preserve route and callback history without preventing the event; moving ArrowLeft/ArrowRight behavior remains covered in the same real-DOM test.
+
+### Covering Verification
+
+```text
+node --test tests/ui/directive-shell.test.mjs
+py -3.13 -m pytest tests/ui/test_ui_contract.py --basetemp .tmp/pytest-task1-review2
+node --check ui/shell.js
+git diff --check
+```
+
+Results: focused shell 1 passed; Python UI contract 5 passed; syntax and diff checks exited 0.
+
+### Review Fix Files
+
+- `tests/ui/directive-shell.test.mjs`
+- `ui/shell.js`
+- `.superpowers/sdd/2026-08-18-directive-ui-brand-alignment/task-1-report.md`
+
+### Review Fix Self-Review
+
+- Compared ordering against the complete authoritative helper: same-index return precedes default prevention, tabindex synchronization, focus, and activation.
+- Verified the boundary tests use real `KeyboardEvent` dispatch and assert callback history, active route, and `defaultPrevented`, rather than testing the helper implementation.
+- Mutation check: removing the guard restores the captured `true !== false` RED at End/Settings; the following Home/Campaign assertions protect the opposite boundary.
+- Verified the diff is limited to the boundary test, one production guard, and this appended report evidence.
+
+### Review Fix Concerns
+
+- None specific to round 2.

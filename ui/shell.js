@@ -74,6 +74,7 @@ export function createDirectiveShell({
     control.addEventListener("keydown", (event) => {
       const targetIndex = nextRouteIndex(index, event?.key, controls.length);
       if (targetIndex !== null) {
+        if (targetIndex === index) return;
         event.preventDefault?.();
         controls[targetIndex].tabIndex = 0;
         controls.forEach((item, itemIndex) => { if (itemIndex !== targetIndex) item.tabIndex = -1; });

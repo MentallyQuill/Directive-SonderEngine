@@ -78,6 +78,21 @@ test("Directive shell preserves the five-route LCARS navigation and keyboard con
   assert.equal(controls[4].getAttribute("aria-current"), "page");
   assert.equal(controls[1].getAttribute("aria-current"), null);
 
+  controls[4].focus();
+  const selectedBeforeEndBoundary = [...selected];
+  const endAtSettings = dispatchKeyboard(fixture.window, controls[4], "End");
+  assert.equal(endAtSettings.defaultPrevented, false);
+  assert.deepEqual(selected, selectedBeforeEndBoundary, "End on Settings must not reactivate Settings");
+  assert.equal(shell.dataset.activeRoute, "settings");
+
+  setShellRoute(shell, "campaign");
+  controls[0].focus();
+  const selectedBeforeHomeBoundary = [...selected];
+  const homeAtCampaign = dispatchKeyboard(fixture.window, controls[0], "Home");
+  assert.equal(homeAtCampaign.defaultPrevented, false);
+  assert.deepEqual(selected, selectedBeforeHomeBoundary, "Home on Campaign must not reactivate Campaign");
+  assert.equal(shell.dataset.activeRoute, "campaign");
+
   shell.querySelector('[data-shell-action="close"]').click();
   const escape = dispatchKeyboard(fixture.window, controls[4], "Escape");
   assert.equal(escape.defaultPrevented, true);
