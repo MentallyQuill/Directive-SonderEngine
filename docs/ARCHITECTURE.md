@@ -103,9 +103,11 @@ Directive additionally registers a fail-closed post-floor validator for any surv
 
 ## People and crew
 
-Sonder owns identity, recognition, aliases, renamed characters, duplicate names, perception and public disclosure. Directive-owned rank, role, department, assignment, duty, command responsibility and operational summaries are stored in the corresponding participant's `ext:directive` character state.
+Sonder owns identity, recognition, aliases, renamed characters, duplicate names, perception and public disclosure. A Sonder `char_id` is the only runtime and UI identity for a person. Directive does not publish or maintain a parallel crew id. Directive-owned rank, role, department, assignment, duty, command responsibility and operational summaries are stored in the corresponding participant's `ext:directive` character state.
 
-The Crew projection begins with `api.player_view(...)["people"]`. Recognized character entries are joined by their stable Sonder `id` to `api.char_state`; observed-but-unrecognized bodies remain opaque and receive no crew join. Only explicit Directive allowlist fields are emitted. Missing values stay absent. Private history, psychology, goals, narration guidance, secrets, hidden relationships and other minds' memories are never read for the player projection.
+Authored packages name actors before Sonder assigns numeric ids. Each participant therefore carries a private, versioned `directive.packageActorBinding.v1` containing the package id/version and portable `actor_ref`. The binding is resolved through Sonder's character handle and never exposed in the player DTO. Existing exact `directive.crewDomain.v1` values migrate record-by-record to `directive.crewProfile.v2`; malformed or unknown versions are left untouched rather than guessed.
+
+The Crew projection begins with `api.player_view(...)["people"]`. Recognized character entries are joined by their stable Sonder `id` to `api.char_state`; observed-but-unrecognized bodies remain opaque and receive no crew join. Only explicit Directive allowlist fields are emitted. Missing values stay absent. The private package binding, private history, psychology, goals, narration guidance, secrets, hidden relationships and other minds' memories are never emitted by the player projection.
 
 ## Time
 

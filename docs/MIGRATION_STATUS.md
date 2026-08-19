@@ -34,7 +34,7 @@
 | Missions, objectives, evidence, consequences | In progress | All 13 definitions validate; deterministic reducer and journey/capability transitions pass; complete authored scenario matrix remains |
 | Ship mechanics, cohesion and assignments | In progress | Authored work ladders, constraints, capabilities, 20-segment cohesion, projection, and replay pass; generated issue scheduler remains |
 | Time and Stardate | Verified | Host-clock derivation, rollover, projection, and narration non-authority tests |
-| People and crew joins | In progress | Seven stable-id joins and public allowlist pass; runtime-observed people events/dossier authoring remain |
+| People and crew joins | In progress | Sonder `char_id` is the sole runtime/UI identity; seven private package actor bindings resolve through current character handles, exact v1 profiles migrate to v2 without public identity leakage, and branch/export/import carriage passes. Runtime-observed people events/dossier authoring remain. |
 | Aggregate player-safe projections | Verified | Mission, journey, ship, time, Bearing, crew and media allowlists; hidden/private omission tests |
 | LCARS shell and responsive host integration | Verified | Live Sonder serves the ES-module graph and the exact Campaign, Mission, People, Ship, Settings route shell; desktop/mobile geometry, media, 44 px controls, keyboard focus transfer/restoration, roving navigation, Escape, focus rings and reduced motion pass in Chromium |
 | Route workspace visual parity | Verified | Live current-Sonder captures use the source Campaign dashboard and layered hero, Mission master/detail with required/optional grouping, People roster/detail, Ship cohesion orbit/callouts and mobile disclosures, Settings sections, and exact responsive shell composition at 1440×900 and 390×844. The gate compares all 10 route captures to the authoritative Directive renders; unsupported mutations remain tracked separately. |
@@ -51,6 +51,7 @@ Current Sonder source and tests provide the migration's required host seams:
 - extension discovery, package imports, isolation and ES-module UI;
 - `provision_story` with state, frame state, contexts, documents, authority and provenance in one transaction;
 - `story_view` schema 3 and player-safe `player_view.people` with immutable recognized ids, viewer-scoped opaque observed ids, and explicit public-fact allowlists;
+- per-character package bindings readable through supported character handles, allowing portable authored actor references to resolve to host-owned numeric ids without a second runtime identity;
 - chat-global, frame-scoped, per-character and document extension state carried through checkpoints, archives and branches;
 - transactional extension commit domains with fail policy;
 - `actor_only` player-authority enforcement;

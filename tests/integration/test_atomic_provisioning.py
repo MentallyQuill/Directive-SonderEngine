@@ -12,7 +12,19 @@ import pytest
 from directive import routes
 from directive.campaign.compiler import PlayerSetup, compile_ashes_archive
 from directive.campaign.source import load_ashes_source
+from directive.people.bindings import resolve_package_actors
 from directive.state.contracts import PACKAGE_ID, PACKAGE_VERSION
+
+
+ASHES_ACTOR_REFS = {
+    "mara-whitaker",
+    "kieran-vale",
+    "priya-nayar",
+    "hadrik-bronn",
+    "rowan-saye",
+    "miriam-sato",
+    "imani-cross",
+}
 
 
 def player_payload():
@@ -169,9 +181,7 @@ def test_current_sonder_loads_and_provisions_the_complete_story(live_sonder):
         "package_id": PACKAGE_ID,
         "package_version": PACKAGE_VERSION,
     }
-    # Schema 3 re-keys anonymous presence ids per viewer; Directive only joins
-    # recognized crew by their stable Sonder ids, so both host shapes apply.
-    assert view["schema"] in {2, 3}
+    assert view["schema"] == 3
     assert view["story"]["name"] == "Ashes of Peace"
     assert view["player"]["name"] == "Sam Vickers"
     assert view["scene"]["location"] == "U.S.S. Breckenridge"
@@ -189,10 +199,26 @@ def test_current_sonder_loads_and_provisions_the_complete_story(live_sonder):
     )
     assert projection["kind"] == "directive.playerProjection.v1"
     assert len(projection["people"]) == 7
-    assert {item["directive"]["crew_id"] for item in projection["people"]} == {
-        "mara-whitaker", "kieran-vale", "priya-nayar", "hadrik-bronn",
-        "rowan-saye", "miriam-sato", "imani-cross",
+    actor_map = resolve_package_actors(api, chat_id)
+    assert set(actor_map) == ASHES_ACTOR_REFS
+    assert set(actor_map.values()) == {item["char_id"] for item in view["cast"]}
+    assert set(actor_map.values()) == {
+        int(item["id"]) for item in projection["people"]
     }
+
+    crew_profiles = [handle.state.get() for handle in api.characters.in_chat(chat_id)]
+    assert len(crew_profiles) == 7
+    assert {profile["kind"] for profile in crew_profiles} == {
+        "directive.crewProfile.v2"
+    }
+    assert {profile["binding"]["actor_ref"] for profile in crew_profiles} == (
+        ASHES_ACTOR_REFS
+    )
+    public_projection = json.dumps(projection, sort_keys=True)
+    assert "crew_id" not in public_projection
+    assert "actor_ref" not in public_projection
+    assert PACKAGE_ID not in public_projection
+    assert "directive-crew-" not in public_projection
     assert "narrationGuide" not in repr(projection)
     assert "psychology" not in repr(projection)
 
@@ -304,6 +330,7 @@ def test_current_sonder_checkpoint_branch_and_archive_carry_directive_state(live
     expected_state = api.state(chat_id).get()
     expected_frame = api.frame_state(chat_id).get()
     expected_campaign = api.documents(chat_id).get("package/campaign")
+    expected_actor_refs = set(resolve_package_actors(api, chat_id))
 
     ensure_checkpoint(chat_id, 0)
     changed = json.loads(json.dumps(expected_frame))
@@ -323,12 +350,14 @@ def test_current_sonder_checkpoint_branch_and_archive_carry_directive_state(live
     assert api.state(branch_id).get() == expected_state
     assert api.frame_state(branch_id).get() == expected_frame
     assert api.documents(branch_id).get("package/campaign") == expected_campaign
+    assert set(resolve_package_actors(api, branch_id)) == expected_actor_refs
 
     imported = app.chat_import({"data": app.chat_export(chat_id)})
     imported_id = imported["id"]
     assert api.state(imported_id).get() == expected_state
     assert api.frame_state(imported_id).get() == expected_frame
     assert api.documents(imported_id).get("package/campaign") == expected_campaign
+    assert set(resolve_package_actors(api, imported_id)) == expected_actor_refs
     provenance = api.provenance(imported_id)
     assert provenance["package"] == PACKAGE_ID
     assert provenance["version"] == PACKAGE_VERSION
