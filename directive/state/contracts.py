@@ -148,9 +148,61 @@ class FrameState:
         }
 
 
+_CREW_OPTIONAL_FIELDS = {
+    "assignment",
+    "duty_status",
+    "public_record",
+    "operational_summary",
+}
+
+
 @dataclass(frozen=True)
-class CrewDomain:
-    crew_id: str
+class PackageActorBinding:
+    package_id: str
+    package_version: str
+    actor_ref: str
+
+    @classmethod
+    def from_dict(cls, raw: Any) -> "PackageActorBinding":
+        value = _object(raw, "package actor binding")
+        _roots(
+            value,
+            required={
+                "kind",
+                "package_id",
+                "package_version",
+                "actor_ref",
+            },
+        )
+        _exact(
+            value["kind"],
+            "directive.packageActorBinding.v1",
+            "binding.kind",
+        )
+        _exact(value["package_id"], PACKAGE_ID, "binding.package_id")
+        _exact(
+            value["package_version"],
+            PACKAGE_VERSION,
+            "binding.package_version",
+        )
+        return cls(
+            package_id=PACKAGE_ID,
+            package_version=PACKAGE_VERSION,
+            actor_ref=_text(value["actor_ref"], "binding.actor_ref"),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "kind": "directive.packageActorBinding.v1",
+            "package_id": self.package_id,
+            "package_version": self.package_version,
+            "actor_ref": self.actor_ref,
+        }
+
+
+@dataclass(frozen=True)
+class CrewProfile:
+    binding: PackageActorBinding
     rank: str
     role: str
     department: str
@@ -160,21 +212,22 @@ class CrewDomain:
     operational_summary: str | None = None
 
     @classmethod
-    def from_dict(cls, raw: Any) -> "CrewDomain":
-        value = _object(raw, "crew domain")
-        required = {"kind", "schema", "crew_id", "rank", "role", "department"}
-        optional = {
-            "assignment",
-            "duty_status",
-            "public_record",
-            "operational_summary",
+    def from_dict(cls, raw: Any) -> "CrewProfile":
+        value = _object(raw, "crew profile")
+        required = {
+            "kind",
+            "schema",
+            "binding",
+            "rank",
+            "role",
+            "department",
         }
-        _roots(value, required=required, optional=optional)
-        _exact(value["kind"], "directive.crewDomain.v1", "kind")
-        _exact(value["schema"], 1, "schema")
+        _roots(value, required=required, optional=_CREW_OPTIONAL_FIELDS)
+        _exact(value["kind"], "directive.crewProfile.v2", "kind")
+        _exact(value["schema"], 2, "schema")
 
         kwargs: dict[str, Any] = {
-            "crew_id": _text(value["crew_id"], "crew_id"),
+            "binding": PackageActorBinding.from_dict(value["binding"]),
             "rank": _text(value["rank"], "rank"),
             "role": _text(value["role"], "role"),
             "department": _text(value["department"], "department"),
@@ -190,9 +243,9 @@ class CrewDomain:
 
     def to_dict(self) -> dict[str, Any]:
         value: dict[str, Any] = {
-            "kind": "directive.crewDomain.v1",
-            "schema": 1,
-            "crew_id": self.crew_id,
+            "kind": "directive.crewProfile.v2",
+            "schema": 2,
+            "binding": self.binding.to_dict(),
             "rank": self.rank,
             "role": self.role,
             "department": self.department,
@@ -204,3 +257,58 @@ class CrewDomain:
         if self.public_record is not None:
             value["public_record"] = _thaw(self.public_record)
         return value
+
+    def to_public_dict(self) -> dict[str, Any]:
+        value = self.to_dict()
+        return {
+            key: item
+            for key, item in value.items()
+            if key not in {"kind", "schema", "binding"}
+        }
+
+
+def migrate_crew_profile(raw: Any) -> dict[str, Any]:
+    value = _object(raw, "crew profile")
+    if (
+        value.get("kind") == "directive.crewProfile.v2"
+        and value.get("schema") == 2
+    ):
+        return CrewProfile.from_dict(value).to_dict()
+
+    if (
+        value.get("kind") == "directive.crewDomain.v1"
+        and value.get("schema") == 1
+    ):
+        required = {
+            "kind",
+            "schema",
+            "crew_id",
+            "rank",
+            "role",
+            "department",
+        }
+        _roots(value, required=required, optional=_CREW_OPTIONAL_FIELDS)
+        migrated = {
+            "kind": "directive.crewProfile.v2",
+            "schema": 2,
+            "binding": {
+                "kind": "directive.packageActorBinding.v1",
+                "package_id": PACKAGE_ID,
+                "package_version": PACKAGE_VERSION,
+                "actor_ref": _text(value["crew_id"], "crew_id"),
+            },
+            "rank": value["rank"],
+            "role": value["role"],
+            "department": value["department"],
+        }
+        migrated.update({
+            field: value[field]
+            for field in _CREW_OPTIONAL_FIELDS
+            if field in value
+        })
+        return CrewProfile.from_dict(migrated).to_dict()
+
+    raise StateContractError(
+        "unsupported crew profile kind/schema: "
+        f"{value.get('kind')!r}/{value.get('schema')!r}"
+    )

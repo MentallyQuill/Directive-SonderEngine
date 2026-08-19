@@ -1,6 +1,20 @@
 """Directive-owned state contracts."""
 
-from .contracts import CampaignConfig, CrewDomain, FrameState, StateContractError
+from .contracts import (
+    CampaignConfig,
+    CrewProfile,
+    FrameState,
+    PackageActorBinding,
+    StateContractError,
+    migrate_crew_profile,
+)
 
-__all__ = ["CampaignConfig", "CrewDomain", "FrameState", "StateContractError"]
+__all__ = [
+    "CampaignConfig",
+    "CrewProfile",
+    "FrameState",
+    "PackageActorBinding",
+    "StateContractError",
+    "migrate_crew_profile",
+]
 

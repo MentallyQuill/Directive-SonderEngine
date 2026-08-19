@@ -57,11 +57,23 @@ def test_compiles_a_complete_sonder_archive_with_one_persona_and_seven_crew():
     assert {item["char_id"] for item in archive["participants"]} == set(range(1, 8))
 
 
-def test_participant_state_carries_only_directive_crew_domain_data():
+def test_participant_state_carries_a_private_package_binding_not_a_second_identity():
     bundle = compile_bundle()
 
     states = [json.loads(item["state"])["ext:directive"] for item in bundle.archive["participants"]]
-    mara = next(item for item in states if item["crew_id"] == "mara-whitaker")
+    mara = next(
+        item for item in states
+        if item["binding"]["actor_ref"] == "mara-whitaker"
+    )
+    assert mara["kind"] == "directive.crewProfile.v2"
+    assert mara["schema"] == 2
+    assert mara["binding"] == {
+        "kind": "directive.packageActorBinding.v1",
+        "package_id": "directive:campaign-package:breckenridge-ashes-of-peace",
+        "package_version": "0.3.0-pre-alpha.2",
+        "actor_ref": "mara-whitaker",
+    }
+    assert "crew_id" not in mara
     assert mara["rank"] == "Captain"
     assert mara["role"] == "Commanding Officer"
     assert mara["department"] == "command"

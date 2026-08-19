@@ -22,7 +22,7 @@ from ..state.contracts import (
     PACKAGE_ID,
     PACKAGE_VERSION,
     CampaignConfig,
-    CrewDomain,
+    CrewProfile,
     FrameState,
 )
 from ..time.clock import derive_ship_time
@@ -211,12 +211,17 @@ def _crew_sheet(officer: Mapping[str, Any], package_role: str) -> dict[str, Any]
     }
 
 
-def _crew_domain(officer: Mapping[str, Any]) -> dict[str, Any]:
+def _crew_profile(officer: Mapping[str, Any]) -> dict[str, Any]:
     service = officer.get("service") or {}
-    return CrewDomain.from_dict({
-        "kind": "directive.crewDomain.v1",
-        "schema": 1,
-        "crew_id": str(officer["id"]),
+    return CrewProfile.from_dict({
+        "kind": "directive.crewProfile.v2",
+        "schema": 2,
+        "binding": {
+            "kind": "directive.packageActorBinding.v1",
+            "package_id": PACKAGE_ID,
+            "package_version": PACKAGE_VERSION,
+            "actor_ref": str(officer["id"]),
+        },
         "rank": str(service.get("rankLabel") or ""),
         "role": str(officer.get("billet") or ""),
         "department": str(service.get("department") or ""),
@@ -321,7 +326,7 @@ def compile_ashes_archive(
             "char_id": old_id,
             "status": "active",
             "state": json.dumps(
-                {"ext:directive": _crew_domain(officer)},
+                {"ext:directive": _crew_profile(officer)},
                 ensure_ascii=False,
                 sort_keys=True,
             ),

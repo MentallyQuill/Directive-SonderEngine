@@ -2,6 +2,7 @@
 
 from .campaign.compiler import PlayerSetup, ProvisioningError, compile_ashes_archive
 from .campaign.source import load_ashes_source
+from .people.bindings import migrate_registered_crew_profiles
 from .projection.player import create_player_projection
 from .settlement import service as settlement
 from .state.contracts import PACKAGE_ID, PACKAGE_VERSION
@@ -16,6 +17,7 @@ def register(api):
         methods=("GET",),
     )
     settlement.register(api)
+    migrate_registered_crew_profiles(api)
 
 
 def _start(api, request):
