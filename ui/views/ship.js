@@ -45,18 +45,50 @@ export function renderShipView(data = {}) {
   const issues = cohesion.issues || [];
   const nav = createElement("nav", "ship-task-nav");
   nav.setAttribute("aria-label", "Available command assignments");
+  const mobileCallouts = createElement("div", "ship-task-mobile-callouts");
+  mobileCallouts.setAttribute("aria-label", "Command assignment locations");
   const detail = createElement("section", "ship-task-detail");
+  detail.id = "ship-task-detail";
   detail.setAttribute("aria-live", "polite");
   const buttons = [];
+  const mobileBadges = [];
+  const mobilePanels = [];
+  let expandedId = null;
   for (const [index, issue] of issues.entries()) {
     const button = createTaskButton(issue, index);
+    const panelId = `ship-task-mobile-panel-${index}`;
+    button.id = `ship-task-button-${index}`;
+    button.setAttribute("aria-controls", `ship-task-detail ${panelId}`);
     button.style.left = `${index % 2 === 0 ? 4 : 73}%`;
     button.style.top = `${10 + (index * 19)}%`;
-    button.addEventListener("click", () => select(issue.id));
+    button.addEventListener("click", () => {
+      select(issue.id);
+      toggleExpanded(issue.id);
+    });
     buttons.push(button);
-    nav.append(button);
+    const mobilePanel = createElement("section", "ship-task-mobile-panel");
+    mobilePanel.id = panelId;
+    mobilePanel.hidden = true;
+    mobilePanel.setAttribute("role", "region");
+    mobilePanel.setAttribute("aria-labelledby", button.id);
+    const mobileContent = createElement("div", "ship-task-detail-content");
+    mobileContent.append(renderIssue(issue, true));
+    mobilePanel.append(mobileContent);
+    mobilePanels.push(mobilePanel);
+    nav.append(button, mobilePanel);
+
+    const badge = createMobileCallout(issue, index);
+    badge.setAttribute("aria-controls", panelId);
+    badge.addEventListener("click", () => {
+      select(issue.id);
+      toggleExpanded(issue.id, true);
+    });
+    mobileBadges.push(badge);
+    mobileCallouts.append(badge);
+    leaders.append(createLeader(issue, index));
   }
-  orbit.append(nav);
+  if (issues.length) leaders.classList.remove("is-layout-unavailable");
+  orbit.append(nav, mobileCallouts);
   stage.append(orbit, detail);
   workspace.append(header, stage);
 
@@ -82,9 +114,23 @@ export function renderShipView(data = {}) {
       button.setAttribute("aria-pressed", active ? "true" : "false");
       button.setAttribute("aria-expanded", active ? "true" : "false");
     }
+    for (const badge of mobileBadges) {
+      const active = badge.dataset.taskId === String(issue.id || "");
+      setClassState(badge, "is-selected", active);
+      badge.setAttribute("aria-pressed", active ? "true" : "false");
+    }
     const content = createElement("div", "ship-task-detail-content");
     content.append(renderIssue(issue, true));
     detail.replaceChildren(content);
+  }
+
+  function toggleExpanded(issueId, forceOpen = false) {
+    expandedId = forceOpen ? issueId : (expandedId === issueId ? null : issueId);
+    for (const [index, button] of buttons.entries()) {
+      const expanded = button.dataset.taskId === String(expandedId || "");
+      button.setAttribute("aria-expanded", expanded ? "true" : "false");
+      mobilePanels[index].hidden = !expanded;
+    }
   }
 }
 
@@ -135,8 +181,10 @@ function createTaskButton(issue, index) {
   button.setAttribute("aria-pressed", "false");
   button.setAttribute("aria-expanded", "false");
   const title = createElement("span", "ship-task-button-title");
+  const icon = createTaskIcon(issue, index);
   title.append(
     appendText(createElement("span", "ship-task-desktop-level"), `L${literal(issue.level, index + 1)}`),
+    icon,
     appendText(createElement("strong"), literal(issue.player_text?.title, "Command assignment")),
     createElement("span", "ship-task-disclosure"),
   );
@@ -147,6 +195,43 @@ function createTaskButton(issue, index) {
   );
   button.append(title, info);
   return button;
+}
+
+function createMobileCallout(issue, index) {
+  const slots = [[18, 8], [67, 8], [78, 42], [57, 72], [31, 72]];
+  const [left, top] = slots[index % slots.length];
+  const button = createElement("button", "ship-task-mobile-callout");
+  button.type = "button";
+  button.dataset.taskId = String(issue.id || "");
+  button.style.left = `${left}%`;
+  button.style.top = `${top}%`;
+  button.setAttribute("aria-label", `${literal(issue.player_text?.title, "Command assignment")}, level ${literal(issue.level, index + 1)}, restores ${literal(issue.cohesion, 0)} Cohesion`);
+  button.setAttribute("aria-pressed", "false");
+  button.append(createTaskIcon(issue, index), appendText(createElement("span", "ship-task-mobile-level"), `L${literal(issue.level, index + 1)}`));
+  return button;
+}
+
+function createTaskIcon(issue, index) {
+  const families = ["systems", "coordination", "personnel", "training", "life"];
+  const icon = createElement("span", "ship-task-category-icon");
+  icon.dataset.icon = present(issue.primary_family) ? String(issue.primary_family) : families[index % families.length];
+  icon.setAttribute("aria-hidden", "true");
+  return icon;
+}
+
+function createLeader(issue, index) {
+  const slots = [[24, 15], [71, 15], [83, 48], [62, 78], [36, 78]];
+  const anchors = {
+    bridge: [58, 28], "forward-sensors": [72, 48], "central-saucer": [58, 48],
+    "crew-habitat": [49, 56], engineering: [34, 31], "port-nacelle": [18, 25],
+    "starboard-nacelle": [46, 22], "aft-hull": [30, 34], shuttlebay: [28, 27], sickbay: [55, 45],
+  };
+  const [startX, startY] = slots[index % slots.length];
+  const [endX, endY] = anchors[issue.anchor] || [50, 45 + ((index % 3) * 7)];
+  const line = createSvg("polyline", "ship-task-leader");
+  line.dataset.taskId = String(issue.id || "");
+  line.setAttribute("points", `${startX},${startY} ${(startX + endX) / 2},${startY} ${endX},${endY}`);
+  return line;
 }
 
 function renderIssue(issue, open) {

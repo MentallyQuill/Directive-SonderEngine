@@ -25,6 +25,16 @@ def _asset_url(path: Any) -> str | None:
     return f"/api/extensions/directive/asset/{value}"
 
 
+def _asset_tree(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {
+            str(key): projected
+            for key, item in value.items()
+            if (projected := _asset_tree(item)) not in (None, {})
+        }
+    return _asset_url(value)
+
+
 def _media() -> dict[str, dict[str, Any]]:
     records = (load_ashes_source().campaign.get("assets") or {}).get("images") or ()
     result = {}
@@ -44,6 +54,14 @@ def _media() -> dict[str, dict[str, Any]]:
             }
             if cohesion:
                 result[subject_id]["variants"]["cohesion"] = cohesion
+            if record.get("kind") == "ship.hero":
+                scene = _asset_tree(record.get("layers") or {})
+                if scene:
+                    result[subject_id]["scene"] = {
+                        "layers": {key: scene[key] for key in ("background", "stars", "foreground") if key in scene},
+                        **({"cruise": scene["cruise"]} if scene.get("cruise") else {}),
+                        **({"emissive": scene["emissive"]} if scene.get("emissive") else {}),
+                    }
         if record.get("kind") == "ship.cohesion" and variants.get("hero"):
             target = result.setdefault(subject_id, {
                 "kind": record.get("kind"),
@@ -51,6 +69,13 @@ def _media() -> dict[str, dict[str, Any]]:
                 "variants": {},
             })
             target["variants"]["cohesion"] = variants["hero"]
+            anchors = {
+                str(key): {"x": float(value.get("x", 0)), "y": float(value.get("y", 0))}
+                for key, value in (record.get("visualAnchors") or {}).items()
+                if isinstance(value, Mapping)
+            }
+            if anchors:
+                target["anchors"] = anchors
     return result
 
 
@@ -79,6 +104,9 @@ def _mission_projection(state: Mapping[str, Any]) -> dict[str, Any]:
             "title": player_text.get("title"),
             "summary": player_text.get("summary"),
         }
+        effective_class = source.get("activatedAs") if source.get("class") == "conditional" else source.get("class")
+        if effective_class in {"required", "optional"}:
+            item["class"] = effective_class
         if record.get("disposition") is not None:
             item["disposition"] = record["disposition"]
             terminal_text = next(
@@ -88,6 +116,22 @@ def _mission_projection(state: Mapping[str, Any]) -> dict[str, Any]:
             if terminal_text:
                 item["terminal_text"] = terminal_text
         objectives.append(item)
+    known_ids = set(state.get("knownFacts") or ())
+    facts = [{
+        "id": fact["id"],
+        "summary": (fact.get("playerText") or {}).get("summary"),
+    } for fact in definition.get("facts") or ()
+        if fact.get("visibility") != "hidden" and fact.get("id") in known_ids]
+    available_ids = {
+        item.get("id") for item in (state.get("entryContext") or {}).get("capabilities") or ()
+        if isinstance(item, Mapping)
+    }
+    capabilities = [{
+        "id": capability["id"],
+        "label": (capability.get("playerText") or {}).get("label"),
+        "summary": (capability.get("playerText") or {}).get("summary"),
+    } for capability in definition.get("entryCapabilities") or ()
+        if capability.get("id") in available_ids]
     receipt = state.get("transitionReceipt") or {}
     packet = receipt.get("packet") or {}
     return {
@@ -99,6 +143,8 @@ def _mission_projection(state: Mapping[str, Any]) -> dict[str, Any]:
         "revision": state.get("revision"),
         "status": state.get("status"),
         "objectives": objectives,
+        "facts": facts,
+        "capabilities": capabilities,
         "outcome_dimensions": copy.deepcopy(state.get("outcomeDimensions") or {}),
         "terminal_disposition": state.get("terminalDisposition"),
         "outcome_summary": copy.deepcopy(packet.get("playerKnownOutcomeSummary") or []),
@@ -166,6 +212,8 @@ def _ship_projection(source, frame_ship: Mapping[str, Any], branch_id: str) -> d
                 "id": item["id"],
                 "level": item["level"],
                 "cohesion": item["cohesion"],
+                "primary_family": item.get("primaryFamily"),
+                "anchor": item.get("anchor"),
                 "player_text": copy.deepcopy(item["playerText"]),
                 "computer_help": item.get("computerHelp"),
                 "phases": copy.deepcopy(item["phases"]),

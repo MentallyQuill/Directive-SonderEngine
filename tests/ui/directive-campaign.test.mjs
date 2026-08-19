@@ -91,6 +91,9 @@ test("Campaign media fails to a framed placeholder and null metrics stay unavail
   const image = frame?.querySelector("img");
   const placeholder = frame?.querySelector(".directive-media-placeholder");
   assert.ok(frame);
+  assert.match(frame.className, /\bdirective-hero-scene\b/);
+  assert.equal(frame.querySelectorAll('[data-hero-scene-layer]').length, 6);
+  assert.equal(frame.querySelectorAll('[data-hero-ship-layer]').length, 3);
   assert.ok(image);
   assert.ok(placeholder);
   image.dispatchEvent(new fixture.window.Event("error"));
@@ -285,7 +288,17 @@ function campaignProjection() {
     mission: { id: "prelude-a-ship-underway", status: "active" },
     time: { stardate: 57300.4, clock_display: "16:42:00" },
     journey: { completed_count: 3 },
-    media: { ship: { alt: "U.S.S. Breckenridge", variants: { hero: "/breckenridge.webp" } } },
+    media: {
+      ship: {
+        alt: "U.S.S. Breckenridge",
+        variants: { hero: "/breckenridge.webp" },
+        scene: {
+          layers: { background: "/background.webp", stars: "/stars.webp", foreground: "/ship.webp" },
+          cruise: { farStars: "/far.svg", nearStars: "/near.svg", sunlight: "/sunlight.svg" },
+          emissive: { windows: "/windows.png", nacelles: "/nacelles.png", windowNoise: "/noise.webp" },
+        },
+      },
+    },
   };
 }
 

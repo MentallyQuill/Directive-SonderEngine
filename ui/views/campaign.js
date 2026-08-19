@@ -174,6 +174,10 @@ function campaignFacts(data) {
 }
 
 function createCampaignMedia(data, variant, className) {
+  const scene = variant === "hero" ? data.media?.ship?.scene : null;
+  if (scene?.layers?.background && scene?.layers?.stars && scene?.layers?.foreground) {
+    return createCampaignHeroScene(data.media.ship, className);
+  }
   const frame = createElement("div", className);
   const placeholder = appendText(createElement("span", "directive-media-placeholder"), "Campaign media unavailable.");
   const source = clean(data.media?.ship?.variants?.[variant]) || (variant === "card" ? clean(data.media?.ship?.variants?.hero) : "");
@@ -189,6 +193,60 @@ function createCampaignMedia(data, variant, className) {
     });
     frame.append(image);
   }
+  frame.append(placeholder);
+  return frame;
+}
+
+function createCampaignHeroScene(media, className) {
+  const frame = createElement("figure", `${className} directive-hero-scene${media.scene.cruise ? " directive-hero-scene-has-cruise" : ""}`);
+  frame.setAttribute("role", "img");
+  frame.setAttribute("aria-label", clean(media.alt) || "Campaign ship scene");
+  const placeholder = appendText(createElement("span", "directive-media-placeholder"), "Campaign media unavailable.");
+  placeholder.hidden = true;
+  let failed = false;
+  const image = (classNameValue, source, layerName, shipLayer = false) => {
+    const node = createElement("img", classNameValue);
+    if (shipLayer) node.dataset.heroShipLayer = layerName;
+    else node.dataset.heroSceneLayer = layerName;
+    node.src = source;
+    node.alt = "";
+    node.setAttribute("aria-hidden", "true");
+    node.addEventListener("error", () => {
+      if (failed) return;
+      failed = true;
+      for (const rendered of frame.querySelectorAll("img")) rendered.hidden = true;
+      placeholder.hidden = false;
+    });
+    return node;
+  };
+  frame.append(
+    image("directive-hero-scene-layer", media.scene.layers.background, "background"),
+    image("directive-hero-scene-layer", media.scene.layers.stars, "stars"),
+  );
+  if (media.scene.cruise) {
+    for (const [name, source] of [["stars-far", media.scene.cruise.farStars], ["stars-near", media.scene.cruise.nearStars]]) {
+      const field = createElement("span", "directive-hero-scene-layer directive-hero-cruise-stars");
+      field.dataset.heroSceneLayer = name;
+      field.style.setProperty("--directive-hero-star-texture", `url("${source}")`);
+      field.setAttribute("aria-hidden", "true");
+      frame.append(field);
+    }
+  }
+  if (media.scene.emissive) {
+    const card = createElement("span", "directive-hero-scene-layer directive-hero-ship-card");
+    card.dataset.heroSceneLayer = "foreground";
+    card.setAttribute("aria-hidden", "true");
+    card.style.setProperty("--directive-hero-window-noise", `url("${media.scene.emissive.windowNoise}")`);
+    card.append(
+      image("directive-hero-ship-card-layer", media.scene.layers.foreground, "base", true),
+      image("directive-hero-ship-card-layer", media.scene.emissive.windows, "windows", true),
+      image("directive-hero-ship-card-layer", media.scene.emissive.nacelles, "nacelles", true),
+    );
+    frame.append(card);
+  } else {
+    frame.append(image("directive-hero-scene-layer", media.scene.layers.foreground, "foreground"));
+  }
+  if (media.scene.cruise?.sunlight) frame.append(image("directive-hero-scene-layer", media.scene.cruise.sunlight, "sunlight"));
   frame.append(placeholder);
   return frame;
 }

@@ -5888,6 +5888,11 @@ html.directive-reorder-grabbing * { cursor: grabbing !important; }
 .directive-app .directive-vector-glyph[data-glyph="route-crew"] { --directive-glyph-url: url("/api/extensions/directive/asset/assets/icons/directive-vector-glyphs-v1/icons/route-crew.svg"); }
 .directive-app .directive-vector-glyph[data-glyph="route-ship"] { --directive-glyph-url: url("/api/extensions/directive/asset/assets/icons/directive-vector-glyphs-v1/icons/route-ship.svg"); }
 .directive-app .directive-vector-glyph[data-glyph="route-settings"] { --directive-glyph-url: url("/api/extensions/directive/asset/assets/icons/directive-vector-glyphs-v1/icons/route-settings.svg"); }
+.directive-app .ship-task-category-icon[data-icon="personnel"] { --ship-task-icon: url("/api/extensions/directive/asset/assets/icons/cohesion-task-categories/personnel.svg"); }
+.directive-app .ship-task-category-icon[data-icon="coordination"] { --ship-task-icon: url("/api/extensions/directive/asset/assets/icons/cohesion-task-categories/coordination.svg"); }
+.directive-app .ship-task-category-icon[data-icon="training"] { --ship-task-icon: url("/api/extensions/directive/asset/assets/icons/cohesion-task-categories/training.svg"); }
+.directive-app .ship-task-category-icon[data-icon="systems"] { --ship-task-icon: url("/api/extensions/directive/asset/assets/icons/cohesion-task-categories/systems.svg"); }
+.directive-app .ship-task-category-icon[data-icon="life"] { --ship-task-icon: url("/api/extensions/directive/asset/assets/icons/cohesion-task-categories/life.svg"); }
 
 .directive-app.directive-runtime-panel.directive-expanded-shell { --directive-focus: #ffe58f; }
 

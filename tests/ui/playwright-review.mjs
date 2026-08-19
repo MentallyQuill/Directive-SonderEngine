@@ -11,6 +11,8 @@ import { chromium } from "playwright";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const ARTIFACT_ROOT = path.join(ROOT, "artifacts", "playwright-ui-alignment");
+const DIRECTIVE_SOURCE_ROOT = path.resolve(process.env.DIRECTIVE_SOURCE_ROOT || path.join(ROOT, "..", "..", "..", "Directive"));
+const REFERENCE_ROOT = path.join(DIRECTIVE_SOURCE_ROOT, "artifacts", "expanded-interface-conformance");
 const HARNESS_PATH = "/tests/ui/fixtures/directive-harness.html";
 const ROUTES = ["campaign", "mission", "people", "ship", "settings"];
 const ROUTE_LABELS = ["Campaign", "Mission", "People", "Ship", "Settings"];
@@ -37,16 +39,16 @@ page.on("response", (response) => {
   if (response.status() >= 400) failures.response.push(`${response.status()} ${response.request().method()} ${response.url()}`);
 });
 
-const evidence = { mode: runtime.mode, baseUrl: runtime.baseUrl, captures: [], metrics: [] };
+const evidence = { mode: runtime.mode, baseUrl: runtime.baseUrl, referenceRoot: REFERENCE_ROOT, captures: [], metrics: [], comparisons: [] };
 try {
   if (runtime.mode === "live-sonder") await prepareLiveHost(context, runtime.baseUrl);
   await openOnboarding(page, runtime);
   await assertFocusEntry(page);
-  await assertCommonContract(page, "campaign", VIEWPORTS[0]);
+  await assertCommonContract(page, "onboarding", VIEWPORTS[0], "campaign");
   await assertSourceStructure(page, "onboarding", VIEWPORTS[0]);
   await capture(page, "onboarding", VIEWPORTS[0]);
   await page.setViewportSize(VIEWPORTS[1]);
-  await assertCommonContract(page, "campaign", VIEWPORTS[1]);
+  await assertCommonContract(page, "onboarding", VIEWPORTS[1], "campaign");
   await assertSourceStructure(page, "onboarding", VIEWPORTS[1]);
   await capture(page, "onboarding", VIEWPORTS[1]);
 
@@ -67,6 +69,7 @@ try {
       await assertCommonContract(page, route, viewport);
       await assertSourceStructure(page, route, viewport);
       await assertSuccessfulMedia(page);
+      if (route === "ship" && viewport.width <= 640) await assertMobileShipDisclosure(page);
       await capture(page, route, viewport);
     }
   }
@@ -138,7 +141,7 @@ async function assertRovingNavigation(targetPage) {
   await targetPage.locator('[data-route-id="campaign"]').click();
 }
 
-async function assertCommonContract(targetPage, route, viewport) {
+async function assertCommonContract(targetPage, surface, viewport, expectedRoute = surface) {
   const metrics = await targetPage.locator(".directive-expanded-shell").evaluate((shell, expectedRoute) => {
     const controls = [...shell.querySelectorAll("[data-route-id]")];
     const routeBar = shell.querySelector(".directive-route-bar");
@@ -173,11 +176,11 @@ async function assertCommonContract(targetPage, route, viewport) {
       controls: visibleInteractive,
       scrollOwners,
     };
-  }, route);
+  }, expectedRoute);
 
   assert.deepEqual(metrics.labels, ROUTE_LABELS, "route order must remain exact");
-  assert.equal(metrics.activeRoute, route, "shell active route must match rendered route");
-  assert.deepEqual(metrics.selected, [route], "exactly one route control must be selected");
+  assert.equal(metrics.activeRoute, expectedRoute, "shell active route must match rendered route");
+  assert.deepEqual(metrics.selected, [expectedRoute], "exactly one route control must be selected");
   assert.equal(metrics.canvas, "#05070b", "Directive canvas token must be #05070b");
   assert.equal(metrics.commandOrange, "#e56f24", "Directive command-orange token must remain exact");
   assert.equal(metrics.rail?.segments, 5, "LCARS rail must contain five segments");
@@ -199,7 +202,21 @@ async function assertCommonContract(targetPage, route, viewport) {
     assert.ok(shelfGap >= -1 && shelfGap <= 12, `mobile route shelf must sit at the bottom edge, gap ${shelfGap}px`);
     assert.ok(metrics.routeBar.rect.width > viewport.width * 0.75, "mobile route shelf must span the workspace");
   }
-  evidence.metrics.push({ viewport: `${viewport.width}x${viewport.height}`, route, ...metrics });
+  evidence.metrics.push({ viewport: `${viewport.width}x${viewport.height}`, surface, ...metrics });
+}
+
+async function assertMobileShipDisclosure(targetPage) {
+  const first = targetPage.locator(".ship-task-button").first();
+  const panelId = (await first.getAttribute("aria-controls"))?.split(/\s+/).find((value) => value.startsWith("ship-task-mobile-panel-"));
+  assert.ok(panelId, "mobile Ship assignment must control a route-local disclosure panel");
+  const panel = targetPage.locator(`#${panelId}`);
+  assert.equal(await panel.isVisible(), false, "mobile Ship disclosure starts collapsed");
+  await first.click();
+  assert.equal(await first.getAttribute("aria-expanded"), "true", "mobile Ship assignment must expose its disclosure state");
+  assert.equal(await panel.isVisible(), true, "mobile Ship assignment detail must be visible after activation");
+  assert.ok((await panel.textContent())?.trim(), "mobile Ship disclosure must contain the selected assignment detail");
+  await first.click();
+  assert.equal(await panel.isVisible(), false, "mobile Ship disclosure must collapse on a second activation");
 }
 
 async function assertSourceStructure(targetPage, surface, viewport) {
@@ -344,8 +361,62 @@ async function capture(targetPage, name, viewport) {
   const filename = `${name}-${viewport.label}-${viewport.width}x${viewport.height}.png`;
   await targetPage.mouse.move(0, 0);
   await targetPage.waitForTimeout(200);
-  await targetPage.screenshot({ path: path.join(ARTIFACT_ROOT, filename) });
+  const screenshot = await targetPage.screenshot({ path: path.join(ARTIFACT_ROOT, filename) });
   evidence.captures.push(filename);
+  if (ROUTES.includes(name)) {
+    const referenceName = `${name}-${viewport.width}x${viewport.height}.png`;
+    const referencePath = path.join(REFERENCE_ROOT, referenceName);
+    await stat(referencePath);
+    const comparison = await compareReferenceImage(targetPage, screenshot, await readFile(referencePath), viewport);
+    const threshold = visualThreshold(name, viewport.label);
+    assert.ok(comparison.normalizedDifference <= threshold,
+      `${name} ${viewport.label} must remain within the authoritative Directive visual envelope: ${comparison.normalizedDifference} > ${threshold}`);
+    evidence.comparisons.push({ route: name, viewport: `${viewport.width}x${viewport.height}`, reference: referencePath, threshold, ...comparison });
+  }
+}
+
+function visualThreshold(route, viewportLabel) {
+  const thresholds = {
+    campaign: { desktop: 0.08, mobile: 0.09 },
+    mission: { desktop: 0.04, mobile: 0.08 },
+    people: { desktop: 0.08, mobile: 0.13 },
+    ship: { desktop: 0.09, mobile: 0.09 },
+    settings: { desktop: 0.08, mobile: 0.10 },
+  };
+  return thresholds[route][viewportLabel];
+}
+
+async function compareReferenceImage(targetPage, actual, reference, viewport) {
+  return targetPage.evaluate(async ({ actualBase64, referenceBase64, crop }) => {
+    const decode = (base64) => new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = `data:image/png;base64,${base64}`;
+    });
+    const [actualImage, referenceImage] = await Promise.all([decode(actualBase64), decode(referenceBase64)]);
+    const pixels = (image) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 96;
+      canvas.height = 96;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      context.drawImage(image, crop.x, crop.y, crop.width, crop.height, 0, 0, 96, 96);
+      return context.getImageData(0, 0, 96, 96).data;
+    };
+    const actualPixels = pixels(actualImage);
+    const referencePixels = pixels(referenceImage);
+    let difference = 0;
+    for (let index = 0; index < actualPixels.length; index += 4) {
+      difference += Math.abs(actualPixels[index] - referencePixels[index]);
+      difference += Math.abs(actualPixels[index + 1] - referencePixels[index + 1]);
+      difference += Math.abs(actualPixels[index + 2] - referencePixels[index + 2]);
+    }
+    return { normalizedDifference: Number((difference / (96 * 96 * 3 * 255)).toFixed(5)) };
+  }, {
+    actualBase64: actual.toString("base64"),
+    referenceBase64: reference.toString("base64"),
+    crop: viewport.width > 640 ? { x: 250, y: 16, width: 940, height: 868 } : { x: 0, y: 0, width: viewport.width, height: viewport.height },
+  });
 }
 
 async function prepareLiveHost(browserContext, baseUrl) {

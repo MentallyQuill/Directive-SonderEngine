@@ -66,18 +66,25 @@ function appendMissionDetail(container, mission, data, compactIdentity = false) 
     hero.append(chronometer);
   }
   container.append(hero);
-  appendObjectiveGroup(container, mission.objectives || []);
+  const objectives = mission.objectives || [];
+  appendObjectiveGroup(container, "Primary objectives", objectives.filter((item) => item.class !== "optional"));
+  appendObjectiveGroup(container, "Optional objectives", objectives.filter((item) => item.class === "optional"), "Shapes the outcome; not required to finish");
+  appendSimpleList(container, "Known information", mission.facts || [], (fact) => literal(fact.summary, "Known information unavailable."));
+  appendSimpleList(container, "Available support", mission.capabilities || [], (capability) => (
+    present(capability.summary) ? `${literal(capability.label, "Support")}: ${capability.summary}` : literal(capability.label, "Support unavailable.")
+  ));
   appendOutcome(container, mission.outcome_dimensions || {});
   appendTransition(container, data.journey?.last_transition);
 }
 
-function appendObjectiveGroup(container, objectives) {
+function appendObjectiveGroup(container, label, objectives, note = "") {
+  if (!objectives.length) return;
   const section = createElement("section", "mission-detail-section");
   const heading = createElement("header", "mission-section-heading");
   heading.append(
-    appendText(createElement("h3"), "Primary objectives"),
-    appendText(createElement("span"), `${objectives.length} visible`),
+    appendText(createElement("h3"), label),
   );
+  if (note) heading.append(appendText(createElement("span"), note));
   const list = createElement("div", "mission-objective-list");
   for (const objective of objectives) {
     const terminal = objective.state === "terminal";
@@ -97,8 +104,17 @@ function appendObjectiveGroup(container, objectives) {
     );
     list.append(row);
   }
-  if (!objectives.length) list.append(appendText(createElement("p"), "No visible objectives are available."));
   section.append(heading, list);
+  container.append(section);
+}
+
+function appendSimpleList(container, label, entries, textFor) {
+  if (!entries.length) return;
+  const section = createElement("section", "mission-detail-section");
+  section.append(appendText(createElement("h3"), label));
+  const list = createElement("ul", "mission-information-list");
+  for (const entry of entries) list.append(appendText(createElement("li"), textFor(entry)));
+  section.append(list);
   container.append(section);
 }
 

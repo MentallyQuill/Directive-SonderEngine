@@ -27,6 +27,7 @@ const PROJECTION = Object.freeze({
     objectives: [
       {
         id: "objective.prelude.command-handover",
+        class: "required",
         state: "terminal",
         visibility: "visible",
         title: "Settle the command handover",
@@ -36,12 +37,15 @@ const PROJECTION = Object.freeze({
       },
       {
         id: "objective.prelude.staff-readiness",
+        class: "optional",
         state: "available",
         visibility: "visible",
         title: "Review senior staff readiness",
         summary: "Meet the senior staff and establish the ship's readiness.",
       },
     ],
+    facts: [{ id: "fact.invitation", summary: "Lieutenant Vale invited the new XO to a junior-officer poker game." }],
+    capabilities: [{ id: "capability.delegation", label: "Senior staff", summary: "Delegate specialized shipboard work." }],
     outcome_dimensions: { "dimension.prelude.command-readiness": "ready-with-limitation" },
     terminal_disposition: null,
     outcome_summary: [],
@@ -182,6 +186,11 @@ test("Mission renders the literal active record, objectives, transition, outcome
   assert.ok(view.querySelector(".mission-index-panel .mission-row.active"));
   assert.ok(view.querySelector(".mission-detail .mission-hero"));
   assert.equal(view.querySelectorAll(".mission-desktop-detail .mission-objective-list .mission-objective-row").length, 2);
+  assert.equal(view.querySelectorAll(".mission-desktop-detail .mission-detail-section")[0]?.querySelector("h3")?.textContent, "Primary objectives");
+  assert.equal(view.querySelectorAll(".mission-desktop-detail .mission-detail-section")[1]?.querySelector("h3")?.textContent, "Optional objectives");
+  assert.match(view.textContent, /Shapes the outcome; not required to finish/);
+  assert.match(view.textContent, /Known information.*Lieutenant Vale invited/s);
+  assert.match(view.textContent, /Available support.*Senior staff: Delegate specialized shipboard work\./s);
   assert.match(view.textContent, /mission\.prelude-a-ship-underway/);
   assert.match(view.textContent, /Revision 4/);
   assert.match(view.textContent, /Settle the command handover/);
@@ -254,6 +263,7 @@ test("Ship renders literal vessel readiness, systems, work orders, and cohesion 
   assert.equal(view.dataset.directiveScrollOwner, "true");
   assert.ok(view.querySelector(".ship-cohesion-workspace .ship-cohesion-orbit"));
   assert.ok(view.querySelector(".ship-cohesion-workspace .ship-task-nav"));
+  assert.equal(view.querySelectorAll(".ship-task-mobile-callouts .ship-task-mobile-callout").length, 1);
   assert.equal(view.querySelector(".ship-cohesion-visual .directive-media-image")?.getAttribute("src"), "/breckenridge-cohesion.png");
   assert.match(view.textContent, /U\.S\.S\. Breckenridge/);
   assert.match(view.textContent, /Intrepid-class/);
@@ -290,6 +300,15 @@ test("Ship renders literal vessel readiness, systems, work orders, and cohesion 
   assert.match(priority.textContent, /Review the sensor work orders\./);
   assert.match(view.textContent, /1 additional assignment queued/);
   assert.match(view.textContent, /Stabilize power transfer/);
+
+  const taskButton = view.querySelector(".ship-task-button");
+  const mobilePanel = view.querySelector(".ship-task-mobile-panel");
+  assert.equal(taskButton?.getAttribute("aria-controls"), `ship-task-detail ${mobilePanel?.id}`);
+  assert.equal(mobilePanel?.hidden, true);
+  taskButton?.click();
+  assert.equal(taskButton?.getAttribute("aria-expanded"), "true");
+  assert.equal(mobilePanel?.hidden, false);
+  assert.match(mobilePanel?.textContent || "", /Complete the calibration and verification sweep\./);
   fixture.window.close();
 });
 

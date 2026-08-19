@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from directive.campaign.compiler import PlayerSetup, compile_ashes_archive
 from directive.campaign.source import load_ashes_source
-from directive.projection.player import create_player_projection
+from directive.projection.player import _mission_projection, create_player_projection
 
 
 def frame():
@@ -96,6 +96,8 @@ def test_projection_omits_hidden_objectives_and_private_state_roots():
     assert projection["ship"]["name"] == "U.S.S. Breckenridge"
     assert projection["ship"]["class_name"] == "Intrepid-class"
     assert projection["media"]["ship"]["variants"]["cohesion"] == "/api/extensions/directive/asset/assets/packages/breckenridge/images/ship/uss-breckenridge.cohesion.png"
+    assert projection["media"]["ship"]["scene"]["layers"]["foreground"].endswith("uss-breckenridge.hero-ship.webp")
+    assert projection["media"]["ship"]["scene"]["emissive"]["windows"].endswith("uss-breckenridge.hero-windows.png")
     assert all(item["visibility"] != "hidden" for item in projection["mission"]["objectives"])
     rendered = repr(projection)
     for forbidden in ("evidenceLog", "worldFacts", "acceptedEvidenceKeys", "psychology", "private_history"):
@@ -107,6 +109,36 @@ def test_projection_omits_hidden_objectives_and_private_state_roots():
     assert len(projection["ship"]["cohesion"]["issues"]) == 2
     assert "narratorGuidance" not in rendered
     assert "interpretation" not in rendered
+
+
+def test_mission_projection_preserves_player_safe_objective_class_facts_and_support():
+    source = load_ashes_source()
+    definition = next(item for item in source.missions if item["id"] == "mission.chapter-2-false-colors")
+    optional = next(item for item in definition["objectives"] if item.get("activatedAs") == "optional")
+    known_fact = next(item for item in definition["facts"] if item.get("visibility") != "hidden")
+    capability = definition["entryCapabilities"][0]
+    state = {
+        "definitionId": definition["id"],
+        "definitionVersion": definition["version"],
+        "revision": 7,
+        "status": "active",
+        "objectives": {
+            optional["id"]: {"state": "available", "visibility": "visible", "disposition": None},
+        },
+        "knownFacts": [known_fact["id"]],
+        "entryContext": {"capabilities": [{"id": capability["id"]}]},
+        "outcomeDimensions": {},
+    }
+
+    mission = _mission_projection(state)
+
+    assert mission["objectives"][0]["class"] == "optional"
+    assert mission["facts"] == [{"id": known_fact["id"], "summary": known_fact["playerText"]["summary"]}]
+    assert mission["capabilities"] == [{
+        "id": capability["id"],
+        "label": capability["playerText"]["label"],
+        "summary": capability["playerText"]["summary"],
+    }]
 
 
 def test_absent_directive_crew_values_remain_absent():
