@@ -236,6 +236,7 @@ async function assertSourceStructure(targetPage, surface, viewport) {
     settings: [".directive-expanded-settings", ".settings-content", ".settings-section"],
   }[surface];
   assert.ok(expected, `unknown source structure surface: ${surface}`);
+  await targetPage.locator(expected[0]).waitFor();
 
   const structure = await targetPage.locator(".directive-expanded-shell").evaluate((shell, selectors) => {
     const overlay = shell.closest(".directive-runtime-overlay");
