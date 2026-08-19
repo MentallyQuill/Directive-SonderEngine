@@ -54,18 +54,32 @@ export function createDirectiveView(sonder, { onClose = () => sonder.closeView()
           drawRoute();
         },
         onClose,
-        time: projection?.time,
       });
-      container.append(shell);
+      const overlay = el("div", {
+        id: "directive-runtime-overlay",
+        class: "directive-runtime-overlay directive-runtime-overlay-open",
+        "aria-hidden": "false",
+      });
+      const backdrop = el("div", { class: "directive-runtime-backdrop", "aria-hidden": "true" });
+      backdrop.addEventListener("click", onClose);
+      const panelHost = el("div", { class: "directive-runtime-panel-host" }, shell);
+      overlay.append(backdrop, panelHost);
+      container.append(overlay);
       const body = shell.querySelector(".directive-route-body");
       drawRoute();
 
       function drawRoute() {
         body.replaceChildren();
         if (chatId === undefined || chatId === null) {
-          body.append(state.route === "campaign"
-            ? renderCreatorView(state.creator, { provisionCampaign, openCampaign, refreshCampaign })
-            : noCampaignRoute(state.route));
+          if (state.route === "campaign") {
+            const surface = el("section", {
+              class: "directive-expanded-campaign directive-creator-route",
+              "data-directive-scroll-owner": "true",
+            }, renderCreatorView(state.creator, { provisionCampaign, openCampaign, refreshCampaign }));
+            body.append(surface);
+          } else {
+            body.append(noCampaignRoute(state.route));
+          }
           return;
         }
         if (projectionError || !projection) {

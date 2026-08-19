@@ -6,7 +6,8 @@ const CAMPAIGN_MODES = Object.freeze([
   Object.freeze({ id: "records", label: "Records" }),
 ]);
 export function renderCampaignView(data = {}, state = {}, actions = {}) {
-  const root = createElement("section", "directive-v1-campaign directive-campaign-workspace");
+  const root = createElement("section", "directive-expanded-campaign directive-campaign-workspace");
+  root.dataset.directiveScrollOwner = "true";
   const commandBar = createElement("nav", "directive-campaign-command-bar directive-action-row directive-lcars-panel");
   commandBar.setAttribute("aria-label", "Campaign workspace modes");
   commandBar.setAttribute("role", "tablist");
@@ -51,32 +52,49 @@ export function renderCampaignView(data = {}, state = {}, actions = {}) {
     });
     panel.setAttribute("aria-labelledby", controls.find((control) => control.dataset.campaignMode === mode).id);
     panel.dataset.campaignPanel = mode;
-    panel.replaceChildren(renderMode(mode, data, actions));
+    commandBar.hidden = mode === "command";
+    panel.replaceChildren(renderMode(mode, data, actions, activate));
     if (notify) actions.onModeChange?.(mode);
   }
 }
 
-function renderMode(mode, data, actions) {
+function renderMode(mode, data, actions, activate) {
   if (mode === "library") return renderLibrary(data, actions);
   if (mode === "records") return renderRecords(data);
-  return renderCommand(data, actions);
+  return renderCommand(data, actions, activate);
 }
 
-function renderCommand(data, actions) {
+function renderCommand(data, actions, activate) {
   const dashboard = createElement("section", "campaign-dashboard");
   const heading = createElement("header", "campaign-dashboard-heading");
-  heading.append(appendText(createElement("h2"), "Current Campaign"));
+  const campaigns = appendText(createElement("button", "campaign-command"), "Campaigns");
+  campaigns.type = "button";
+  campaigns.dataset.campaignAction = "browse";
+  campaigns.addEventListener("click", () => activate("library"));
+  heading.append(appendText(createElement("h2"), "Current Campaign"), campaigns);
   dashboard.append(heading, createCampaignHero(data));
 
+  const commands = createElement("div", "campaign-detail-actions campaign-dashboard-actions");
   if (typeof actions.continueCampaign === "function") {
-    const commands = createElement("div", "campaign-detail-actions campaign-dashboard-actions");
     const resume = appendText(createElement("button", "campaign-command campaign-command-primary"), "Continue Campaign");
     resume.type = "button";
     resume.dataset.campaignAction = "continue";
     resume.addEventListener("click", () => actions.continueCampaign(data.chat_id));
     commands.append(resume);
-    dashboard.append(commands);
   }
+  for (const [action, label, className] of [
+    ["save", "Save Game", "campaign-command"],
+    ["load", "Load Game", "campaign-command"],
+    ["delete", "Delete", "campaign-command campaign-command-danger campaign-delete-icon-command"],
+  ]) {
+    const unavailable = appendText(createElement("button", className), label);
+    unavailable.type = "button";
+    unavailable.disabled = true;
+    unavailable.dataset.campaignAction = action;
+    unavailable.setAttribute("aria-label", `${label} unavailable in the Sonder migration`);
+    commands.append(unavailable);
+  }
+  dashboard.append(commands);
   return dashboard;
 }
 
@@ -86,12 +104,19 @@ function createCampaignHero(data) {
 
   const copy = createElement("div", "campaign-hero-copy");
   copy.append(
-    appendText(createElement("span", "directive-lcars-kicker"), "Active campaign"),
+    appendText(createElement("span", "directive-lcars-kicker campaign-status"), "Current campaign"),
     appendText(createElement("h2"), fact(data.campaign?.title, "Campaign title unavailable.")),
+    appendText(createElement("p"), [
+      fact(data.viewer?.name, "Player identity unavailable."),
+      fact(data.ship?.class_name, "Ship class unavailable."),
+      fact(data.ship?.name, "Ship identity unavailable."),
+    ].join(" / ")),
+    appendText(
+      createElement("p"),
+      fact(data.mission?.summary || data.mission?.title || data.mission?.id, "Current mission unavailable."),
+    ),
   );
-  const facts = createElement("div", "campaign-facts campaign-library-facts");
-  for (const [label, value] of campaignFacts(data)) facts.append(createFact(label, value));
-  copy.append(facts);
+  copy.append(createChronometer(data.time));
   hero.append(copy);
   return hero;
 }
@@ -155,6 +180,7 @@ function createCampaignMedia(data, variant, className) {
   placeholder.hidden = Boolean(source);
   if (source) {
     const image = createElement("img");
+    image.className = "directive-media-image";
     image.src = source;
     image.alt = clean(data.media?.ship?.alt) || "";
     image.addEventListener("error", () => {
@@ -165,6 +191,19 @@ function createCampaignMedia(data, variant, className) {
   }
   frame.append(placeholder);
   return frame;
+}
+
+function createChronometer(time = {}) {
+  const root = createElement("div", "directive-ship-chronometer directive-ship-chronometer-campaign");
+  root.append(
+    appendText(createElement("span", "directive-ship-chronometer-label"), "Ship time"),
+    appendText(createElement("strong", "directive-ship-chronometer-clock"), fact(time.clock_display, "Unavailable")),
+    appendText(
+      createElement("span", "directive-ship-chronometer-stardate"),
+      finiteProjectionNumber(time.stardate) === null ? "Stardate unavailable" : `Stardate ${Number(time.stardate).toFixed(1)}`,
+    ),
+  );
+  return root;
 }
 
 function createFact(label, value) {

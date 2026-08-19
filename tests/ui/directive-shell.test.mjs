@@ -13,7 +13,6 @@ test("Directive shell preserves the five-route LCARS navigation and keyboard con
     activeRouteId: "mission",
     onSelectRoute: (routeId) => selected.push(routeId),
     onClose: () => { closed += 1; },
-    time: { clock_display: "2380-04-17 16:42", stardate: 57300.4 },
   });
   fixture.document.body.append(shell);
 
@@ -44,6 +43,7 @@ test("Directive shell preserves the five-route LCARS navigation and keyboard con
   assert.equal(shell.querySelectorAll(".directive-lcars-rail-segment").length, 5);
   assert.equal(shell.querySelector(".directive-workspace")?.tagName, "MAIN");
   assert.equal(shell.querySelector(".directive-topbar")?.tagName, "HEADER");
+  assert.equal(shell.querySelector(".directive-shell-time"), null, "global shell time must stay in route-native chronometers");
   assert.equal(shell.querySelector(".directive-route-heading")?.textContent, "Mission");
   assert.equal(shell.querySelector(".directive-route-path")?.textContent, "Mission / Objectives & Outcomes");
   assert.equal(shell.querySelector(".directive-route-body")?.dataset.routeView, "mission");

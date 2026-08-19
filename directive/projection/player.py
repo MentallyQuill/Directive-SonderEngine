@@ -36,11 +36,21 @@ def _media() -> dict[str, dict[str, Any]]:
         }
         subject_id = str(record["subjectId"])
         if variants and (subject_id not in result or record.get("kind") == "ship.hero"):
+            cohesion = (result.get(subject_id, {}).get("variants") or {}).get("cohesion")
             result[subject_id] = {
                 "kind": record.get("kind"),
                 "alt": record.get("alt"),
                 "variants": variants,
             }
+            if cohesion:
+                result[subject_id]["variants"]["cohesion"] = cohesion
+        if record.get("kind") == "ship.cohesion" and variants.get("hero"):
+            target = result.setdefault(subject_id, {
+                "kind": record.get("kind"),
+                "alt": record.get("alt"),
+                "variants": {},
+            })
+            target["variants"]["cohesion"] = variants["hero"]
     return result
 
 
@@ -83,6 +93,8 @@ def _mission_projection(state: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "kind": "directive.missionPlayerProjection.v1",
         "id": state.get("definitionId"),
+        "title": (definition.get("playerText") or {}).get("title"),
+        "summary": (definition.get("playerText") or {}).get("summary"),
         "version": state.get("definitionVersion"),
         "revision": state.get("revision"),
         "status": state.get("status"),

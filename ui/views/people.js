@@ -15,6 +15,8 @@ export function renderPeopleView(data = {}, state = {}) {
   }
 
   const root = createElement("section", "directive-expanded-people people-route");
+  root.dataset.directiveScrollOwner = "true";
+  root.append(renderBearing(data.command_bearing || {}));
   const journal = createElement("div", "people-layout people-journal");
   const roster = createElement("aside", "people-roster");
   const rosterHead = createElement("header", "people-roster-head");
@@ -23,7 +25,9 @@ export function renderPeopleView(data = {}, state = {}) {
     appendText(createElement("h2"), "People"),
   );
   const list = createElement("div", "people-roster-list");
+  list.dataset.directiveScrollOwner = "true";
   const detail = createElement("section", "people-detail");
+  detail.dataset.directiveScrollOwner = "true";
   const controls = people.map((person) => createRosterControl(person));
   controls.forEach((control) => list.append(control));
   roster.append(rosterHead, list);
@@ -36,6 +40,15 @@ export function renderPeopleView(data = {}, state = {}) {
     const control = createElement("button", "people-row");
     control.type = "button";
     control.dataset.personId = String(person.id || "");
+    const thumb = person.directive?.media?.variants?.thumb;
+    if (present(thumb)) {
+      const portrait = createElement("figure", "people-row-image directive-media-frame");
+      const image = createElement("img", "directive-media-image");
+      image.src = thumb;
+      image.alt = "";
+      portrait.append(image);
+      control.append(portrait);
+    }
     const copy = createElement("span", "people-row-copy");
     copy.append(
       appendText(createElement("strong"), literal(person.display_name, "Observed person")),
@@ -56,6 +69,25 @@ export function renderPeopleView(data = {}, state = {}) {
     }
     detail.replaceChildren(renderPersonDetail(person));
   }
+}
+
+function renderBearing(bearing) {
+  const section = createElement("section", "directive-command-bearing-strip");
+  const copy = createElement("div", "directive-command-bearing-copy");
+  const available = Number.isInteger(bearing.balance) && Number.isInteger(bearing.capacity) && bearing.capacity > 0;
+  copy.append(
+    appendText(createElement("span"), "Command Bearing"),
+    appendText(createElement("h2"), available ? `${bearing.balance} of ${bearing.capacity} available` : "Unavailable"),
+    appendText(createElement("p"), available ? literal(bearing.latest_award_reason, "A reserve earned through meaningful command decisions.") : "Command Bearing unavailable."),
+  );
+  section.append(copy);
+  if (available) {
+    const pips = createElement("div", "directive-command-bearing-pips");
+    pips.setAttribute("aria-label", `${bearing.balance} of ${bearing.capacity} Command Bearing available`);
+    for (let index = 0; index < bearing.capacity; index += 1) pips.append(createElement("span", index < bearing.balance ? "is-filled" : ""));
+    section.append(pips);
+  }
+  return section;
 }
 
 function orderedPeople(people) {

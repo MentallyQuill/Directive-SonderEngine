@@ -5,7 +5,6 @@ export function createDirectiveShell({
   activeRouteId = "campaign",
   onSelectRoute = null,
   onClose = null,
-  time = null,
 } = {}) {
   const initialRoute = getDirectiveRoute(activeRouteId) || DIRECTIVE_ROUTES[0];
   const shell = createElement("section", "directive-app directive-runtime-panel directive-runtime-shell directive-shell directive-expanded-shell");
@@ -33,12 +32,6 @@ export function createDirectiveShell({
   );
 
   const actions = createElement("div", "directive-topbar-actions");
-  const formattedTime = formatTime(time);
-  if (formattedTime) {
-    const chronometer = appendText(createElement("div", "directive-shell-time"), formattedTime);
-    chronometer.setAttribute("translate", "no");
-    actions.append(chronometer);
-  }
   const close = appendText(createElement("button", "directive-close-action"), "×");
   close.type = "button";
   close.dataset.shellAction = "close";
@@ -149,10 +142,4 @@ function nextRouteIndex(index, key, count) {
   if (key === "Home") return 0;
   if (key === "End") return count - 1;
   return null;
-}
-
-function formatTime(time) {
-  const clock = String(time?.clock_display || "").trim();
-  const stardate = Number.isFinite(Number(time?.stardate)) ? `SD ${Number(time.stardate).toFixed(1)}` : "";
-  return [clock, stardate].filter(Boolean).join(" · ");
 }

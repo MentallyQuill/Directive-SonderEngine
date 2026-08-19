@@ -29,6 +29,11 @@ test("Campaign switches Command, Library, and Records without inventing missing 
   fixture.document.body.append(view);
 
   assert.match(view.className, /\bdirective-campaign-workspace\b/);
+  assert.match(view.className, /\bdirective-expanded-campaign\b/);
+  assert.equal(view.dataset.directiveScrollOwner, "true");
+  assert.ok(view.querySelector(".campaign-dashboard > .campaign-dashboard-heading"));
+  assert.ok(view.querySelector(".campaign-dashboard > .campaign-dashboard-hero"));
+  assert.ok(view.querySelector(".campaign-dashboard > .campaign-dashboard-actions"));
   assert.equal(view.querySelector('[role="tablist"]')?.classList.contains("directive-campaign-command-bar"), true);
   assert.deepEqual(
     [...view.querySelectorAll("[data-campaign-mode]")].map((button) => button.textContent),
@@ -39,10 +44,7 @@ test("Campaign switches Command, Library, and Records without inventing missing 
   assert.match(view.textContent, /U\.S\.S\. Breckenridge/);
   assert.match(view.textContent, /Intrepid-class/);
   assert.match(view.textContent, /prelude-a-ship-underway/);
-  assert.match(view.textContent, /Exploration/);
   assert.match(view.textContent, /57300\.4/);
-  assert.match(view.textContent, /3/);
-  assert.match(view.textContent, /Location is not currently established\./);
   assert.doesNotMatch(view.textContent, /Asterion Station/);
 
   const modeButtons = [...view.querySelectorAll("[data-campaign-mode]")];
@@ -84,8 +86,7 @@ test("Campaign media fails to a framed placeholder and null metrics stay unavail
   const view = renderCampaignView(data, { mode: "command" }, {});
   fixture.document.body.append(view);
 
-  assert.match(view.textContent, /StardateStardate unavailable\./);
-  assert.match(view.textContent, /CompletedCompletion record unavailable\./);
+  assert.match(view.textContent, /Stardate unavailable/);
   const frame = view.querySelector(".campaign-hero-media");
   const image = frame?.querySelector("img");
   const placeholder = frame?.querySelector(".directive-media-placeholder");

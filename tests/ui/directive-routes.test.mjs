@@ -14,7 +14,7 @@ const PROJECTION = Object.freeze({
   chat_id: 27,
   campaign: { id: "ashes-of-peace", title: "Ashes of Peace", simulation_mode: "Exploration" },
   media: {
-    ship: { kind: "ship.hero", alt: "U.S.S. Breckenridge underway", variants: { hero: "/breckenridge.webp" } },
+    ship: { kind: "ship.hero", alt: "U.S.S. Breckenridge underway", variants: { hero: "/breckenridge.webp", cohesion: "/breckenridge-cohesion.png" } },
     location: { kind: "location.hero", alt: "Asterion Station", variants: { card: "/asterion.webp" } },
   },
   viewer: { id: "player", name: "Avery Quill", kind: "player" },
@@ -177,13 +177,17 @@ test("Mission renders the literal active record, objectives, transition, outcome
   const view = renderMissionView(PROJECTION);
   fixture.document.body.append(view);
 
-  assert.match(view.className, /\bdirective-v1-mission\b/);
+  assert.match(view.className, /\bdirective-expanded-mission\b/);
+  assert.equal(view.dataset.directiveScrollOwner, "true");
+  assert.ok(view.querySelector(".mission-index-panel .mission-row.active"));
+  assert.ok(view.querySelector(".mission-detail .mission-hero"));
+  assert.equal(view.querySelectorAll(".mission-desktop-detail .mission-objective-list .mission-objective-row").length, 2);
   assert.match(view.textContent, /mission\.prelude-a-ship-underway/);
   assert.match(view.textContent, /Revision 4/);
   assert.match(view.textContent, /Settle the command handover/);
   assert.match(view.textContent, /The command handover terms were settled\./);
   assert.match(view.textContent, /Review senior staff readiness/);
-  assert.equal(view.querySelectorAll(".directive-v1-objective").length, 2);
+  assert.equal(view.querySelectorAll(".mission-desktop-detail .mission-objective-row").length, 2);
   assert.match(view.textContent, /ready-with-limitation/);
   assert.match(view.textContent, /The new command team begins its readiness review\./);
   assert.match(view.textContent, /Command Bearing/);
@@ -212,6 +216,9 @@ test("People orders recognized Directive crew before observed contacts and selec
   fixture.document.body.append(view);
 
   assert.match(view.className, /\bdirective-expanded-people\b/);
+  assert.equal(view.dataset.directiveScrollOwner, "true");
+  assert.ok(view.querySelector(".people-journal > .people-roster"));
+  assert.ok(view.querySelector(".people-journal > .people-detail"));
   const controls = [...view.querySelectorAll("[data-person-id]")];
   assert.equal(view.querySelectorAll(".people-row > .people-row-copy").length, 3);
   assert.deepEqual(controls.map((control) => control.textContent.trim()), [
@@ -243,7 +250,11 @@ test("Ship renders literal vessel readiness, systems, work orders, and cohesion 
   const view = renderShipView(PROJECTION);
   fixture.document.body.append(view);
 
-  assert.match(view.className, /\bdirective-v1-ship\b/);
+  assert.match(view.className, /\bdirective-expanded-ship\b/);
+  assert.equal(view.dataset.directiveScrollOwner, "true");
+  assert.ok(view.querySelector(".ship-cohesion-workspace .ship-cohesion-orbit"));
+  assert.ok(view.querySelector(".ship-cohesion-workspace .ship-task-nav"));
+  assert.equal(view.querySelector(".ship-cohesion-visual .directive-media-image")?.getAttribute("src"), "/breckenridge-cohesion.png");
   assert.match(view.textContent, /U\.S\.S\. Breckenridge/);
   assert.match(view.textContent, /Intrepid-class/);
   assert.match(view.textContent, /Cohesion 75/);
@@ -301,7 +312,9 @@ test("Settings is a branded in-product authority record without Sonder-owned pro
   const view = renderSettingsView(PROJECTION);
   fixture.document.body.append(view);
 
-  assert.match(view.className, /\bdirective-v1-settings\b/);
+  assert.match(view.className, /\bdirective-expanded-settings\b/);
+  assert.equal(view.dataset.directiveScrollOwner, "true");
+  assert.equal(view.querySelectorAll(".settings-content > .settings-section").length, 2);
   assert.match(view.textContent, /Directive campaign authority/);
   assert.match(view.textContent, /Exploration/);
   assert.match(view.textContent, /Sonder owns model and provider configuration\./);
@@ -325,13 +338,17 @@ test("Directive exposes exactly the five branded routes and renders every non-Ca
   };
   await createDirectiveView(sonder).render(container);
 
+  const overlay = container.querySelector(".directive-runtime-overlay.directive-runtime-overlay-open");
+  assert.ok(overlay?.querySelector(":scope > .directive-runtime-backdrop"));
+  assert.ok(overlay?.querySelector(":scope > .directive-runtime-panel-host > .directive-expanded-shell"));
+
   const routes = [...container.querySelectorAll("[data-route-id]")];
   assert.deepEqual(routes.map((button) => button.textContent), ["Campaign", "Mission", "People", "Ship", "Settings"]);
   for (const [routeId, selector] of [
-    ["mission", ".directive-v1-mission"],
+    ["mission", ".directive-expanded-mission"],
     ["people", ".directive-expanded-people"],
-    ["ship", ".directive-v1-ship"],
-    ["settings", ".directive-v1-settings"],
+    ["ship", ".directive-expanded-ship"],
+    ["settings", ".directive-expanded-settings"],
   ]) {
     routes.find((button) => button.dataset.routeId === routeId).click();
     assert.ok(container.querySelector(selector), `${routeId} must use its branded workspace`);

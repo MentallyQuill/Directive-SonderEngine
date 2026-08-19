@@ -5889,22 +5889,34 @@ html.directive-reorder-grabbing * { cursor: grabbing !important; }
 .directive-app .directive-vector-glyph[data-glyph="route-ship"] { --directive-glyph-url: url("/api/extensions/directive/asset/assets/icons/directive-vector-glyphs-v1/icons/route-ship.svg"); }
 .directive-app .directive-vector-glyph[data-glyph="route-settings"] { --directive-glyph-url: url("/api/extensions/directive/asset/assets/icons/directive-vector-glyphs-v1/icons/route-settings.svg"); }
 
-.directive-app.directive-runtime-panel.directive-expanded-shell {
-  --directive-focus: #ffe58f;
-  position: relative !important;
-  inset: auto !important;
-  width: 100% !important;
-  max-width: none !important;
-  height: 100dvh !important;
-  min-height: 0 !important;
-  max-height: 100dvh !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
+.directive-app.directive-runtime-panel.directive-expanded-shell { --directive-focus: #ffe58f; }
+
+.directive-expanded-shell .directive-campaign-command-bar[hidden] { display: none !important; }
+
+/* The source Campaign panel mounts its dashboard directly. Sonder keeps a
+   mode-panel adapter, so make that adapter transparent to the source flex/grid
+   sizing and keep simple fallback media out of intrinsic track sizing. */
+.directive-app .directive-campaign-workspace {
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
 }
 
-.directive-app .directive-route-body {
-  overflow: hidden !important;
-  overscroll-behavior: none;
+.directive-app .directive-campaign-mode-panel {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.directive-app .campaign-dashboard > .campaign-dashboard-hero {
+  position: relative;
+}
+
+.directive-app .campaign-dashboard-hero > .directive-media-frame {
+  position: absolute;
+  inset: 0;
 }
 
 .directive-app .directive-close-action,
@@ -5919,14 +5931,4 @@ html.directive-reorder-grabbing * { cursor: grabbing !important; }
 .directive-app textarea,
 .directive-app summary {
   min-height: 44px !important;
-}
-
-.directive-app .directive-shell-time {
-  color: var(--directive-expanded-muted, rgba(248, 239, 224, .68));
-  font: 700 11px/1.2 ui-monospace, "Cascadia Mono", Consolas, monospace;
-  white-space: nowrap;
-}
-
-@media (max-width: 640px) {
-  .directive-app .directive-shell-time { display: none; }
 }

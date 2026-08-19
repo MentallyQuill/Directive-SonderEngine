@@ -43,9 +43,11 @@ try {
   await openOnboarding(page, runtime);
   await assertFocusEntry(page);
   await assertCommonContract(page, "campaign", VIEWPORTS[0]);
+  await assertSourceStructure(page, "onboarding", VIEWPORTS[0]);
   await capture(page, "onboarding", VIEWPORTS[0]);
   await page.setViewportSize(VIEWPORTS[1]);
   await assertCommonContract(page, "campaign", VIEWPORTS[1]);
+  await assertSourceStructure(page, "onboarding", VIEWPORTS[1]);
   await capture(page, "onboarding", VIEWPORTS[1]);
 
   await page.keyboard.press("Escape");
@@ -63,6 +65,7 @@ try {
       await page.locator(`[data-route-id="${route}"]`).click();
       await page.locator(`.directive-expanded-shell[data-active-route="${route}"]`).waitFor();
       await assertCommonContract(page, route, viewport);
+      await assertSourceStructure(page, route, viewport);
       await assertSuccessfulMedia(page);
       await capture(page, route, viewport);
     }
@@ -197,6 +200,94 @@ async function assertCommonContract(targetPage, route, viewport) {
     assert.ok(metrics.routeBar.rect.width > viewport.width * 0.75, "mobile route shelf must span the workspace");
   }
   evidence.metrics.push({ viewport: `${viewport.width}x${viewport.height}`, route, ...metrics });
+}
+
+async function assertSourceStructure(targetPage, surface, viewport) {
+  const expected = {
+    onboarding: [".directive-expanded-campaign", ".directive-creator-form"],
+    campaign: [".directive-expanded-campaign", ".campaign-dashboard", ".campaign-dashboard-hero"],
+    mission: [".directive-expanded-mission", ".mission-index-panel", ".mission-detail", ".mission-objective-list"],
+    people: [".directive-expanded-people", ".people-journal", ".people-roster", ".people-detail"],
+    ship: [".directive-expanded-ship", ".ship-cohesion-workspace", ".ship-cohesion-orbit", ".ship-task-nav"],
+    settings: [".directive-expanded-settings", ".settings-content", ".settings-section"],
+  }[surface];
+  assert.ok(expected, `unknown source structure surface: ${surface}`);
+
+  const structure = await targetPage.locator(".directive-expanded-shell").evaluate((shell, selectors) => {
+    const overlay = shell.closest(".directive-runtime-overlay");
+    const host = shell.parentElement;
+    const backdrop = overlay?.querySelector(":scope > .directive-runtime-backdrop");
+    const rail = shell.querySelector(".directive-lcars-rail");
+    const shellStyle = getComputedStyle(shell);
+    const railStyle = getComputedStyle(rail);
+    const owners = [...shell.querySelectorAll('[data-directive-scroll-owner="true"]')];
+    return {
+      overlayOpen: Boolean(overlay?.classList.contains("directive-runtime-overlay-open")),
+      panelHost: Boolean(host?.classList.contains("directive-runtime-panel-host")),
+      backdrop: Boolean(backdrop),
+      backdropPosition: backdrop ? getComputedStyle(backdrop).position : null,
+      shellRect: shell.getBoundingClientRect().toJSON(),
+      shellPosition: shellStyle.position,
+      shellRadius: parseFloat(shellStyle.borderTopRightRadius) || 0,
+      railWidth: rail.getBoundingClientRect().width,
+      railDisplay: railStyle.display,
+      owners: owners.map((owner) => ({
+        className: owner.className,
+        overflowY: getComputedStyle(owner).overflowY,
+      })),
+      missing: selectors.filter((selector) => !shell.querySelector(selector)),
+    };
+  }, expected);
+
+  assert.equal(structure.overlayOpen, true, "Directive must render inside the open source overlay");
+  assert.equal(structure.panelHost, true, "Directive shell must be a direct child of the source panel host");
+  assert.equal(structure.backdrop, true, "Directive source overlay must retain its backdrop");
+  assert.equal(structure.backdropPosition, "absolute", "Directive backdrop must cover the host viewport");
+  assert.deepEqual(structure.missing, [], `${surface} must use the authoritative source hierarchy`);
+  assert.ok(structure.owners.length > 0, `${surface} must own an internal scroll region`);
+  assert.ok(
+    structure.owners.some((owner) => ["auto", "scroll"].includes(owner.overflowY)),
+    `${surface} must scroll inside the framed console`,
+  );
+
+  if (viewport.width > 640) {
+    assert.equal(structure.shellPosition, "absolute", "desktop source console must use absolute overlay framing");
+    assert.ok(structure.shellRect.width >= 900 && structure.shellRect.width <= 942,
+      `desktop console must preserve the source 940px measure, got ${structure.shellRect.width}`);
+    assert.ok(structure.shellRect.top >= 15 && structure.shellRect.bottom <= viewport.height - 15,
+      `desktop console must float with source insets, got y=${structure.shellRect.top}..${structure.shellRect.bottom}`);
+    assert.ok(structure.shellRadius >= 13, `desktop console must keep the rounded source frame, got ${structure.shellRadius}px`);
+    assert.ok(Math.abs(structure.railWidth - 40) <= 1, `desktop rail must be 40px, got ${structure.railWidth}`);
+  } else {
+    assert.equal(structure.railDisplay, "grid", "mobile must retain the five-segment LCARS rail");
+    assert.ok(Math.abs(structure.railWidth - 24) <= 1, `mobile rail must be 24px, got ${structure.railWidth}`);
+    assert.ok(Math.abs(structure.shellRect.width - viewport.width) <= 1,
+      `mobile console must match the viewport width, got ${structure.shellRect.width}`);
+    assert.ok(Math.abs(structure.shellRect.height - viewport.height) <= 1,
+      `mobile console must match the viewport height, got ${structure.shellRect.height}`);
+  }
+
+  if (surface === "campaign") {
+    const campaignGeometry = await targetPage.locator(".campaign-dashboard").evaluate((dashboard) => {
+      const heroCopy = dashboard.querySelector(".campaign-hero-copy");
+      const actions = dashboard.querySelector(".campaign-dashboard-actions");
+      const routeBar = dashboard.closest(".directive-expanded-shell")?.querySelector(".directive-route-bar");
+      const rect = (node) => node?.getBoundingClientRect().toJSON() || null;
+      return {
+        dashboard: rect(dashboard),
+        heroCopy: rect(heroCopy),
+        actions: rect(actions),
+        routeBar: rect(routeBar),
+      };
+    });
+    assert.ok(campaignGeometry.heroCopy && campaignGeometry.actions && campaignGeometry.routeBar,
+      "Campaign source dashboard must include identity, command strip, and route shelf");
+    assert.ok(campaignGeometry.heroCopy.top >= campaignGeometry.dashboard.top
+      && campaignGeometry.heroCopy.bottom <= campaignGeometry.actions.top + 1,
+    `Campaign identity must remain over the hero above commands, got ${JSON.stringify(campaignGeometry)}`);
+    assert.ok(campaignGeometry.actions.bottom <= campaignGeometry.routeBar.top + 1,
+      `Campaign commands must remain visible above the route shelf, got ${JSON.stringify(campaignGeometry)}`);
+  }
 }
 
 async function assertSuccessfulMedia(targetPage) {
