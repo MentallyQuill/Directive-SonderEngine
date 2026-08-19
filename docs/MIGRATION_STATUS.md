@@ -62,7 +62,7 @@ No upstream Sonder blocker is currently proven. Historical gap reports under `do
 
 ## Latest executable evidence
 
-- `$env:SONDER_ENGINE_ROOT='F:\git\Sonder_Engine'; py -3.13 -m pytest -q --disable-warnings --basetemp .tmp/pytest-latest-sonder-audit`: **106 passed** (150 warnings from the current Sonder host's Pydantic deprecations). The six host-dependent cases that skip without `SONDER_ENGINE_ROOT` executed.
+- `$env:SONDER_ENGINE_ROOT='F:\git\Sonder_Engine'; py -3.13 -m pytest -q --disable-warnings --basetemp .tmp/pytest-premerge-final`: **119 passed** (150 warnings from the current Sonder host's Pydantic deprecations). The host-dependent cases that skip without `SONDER_ENGINE_ROOT` executed.
 - Current-host integration covers discovery/activation, route dispatch, archive import/readback, an unchanged database hash on invalid input, player projection, fatal player-dialogue correction without state mutation, exact-turn settlement commit, checkpoint rewind, branch carriage, portable export/import, and ES-module/CSS serving.
 - `C:\Python313\python.exe -m compileall -q directive tests`: passed.
 - `node --check` for every UI module and `node --test tests/ui/*.test.mjs`: passed (**19 tests**).
