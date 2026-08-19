@@ -211,12 +211,14 @@ async function assertMobileShipDisclosure(targetPage) {
   assert.ok(panelId, "mobile Ship assignment must control a route-local disclosure panel");
   const panel = targetPage.locator(`#${panelId}`);
   assert.equal(await panel.isVisible(), false, "mobile Ship disclosure starts collapsed");
+  assert.equal(await first.getAttribute("aria-expanded"), "false", "collapsed mobile Ship assignment must expose a matching accessibility state");
   await first.click();
   assert.equal(await first.getAttribute("aria-expanded"), "true", "mobile Ship assignment must expose its disclosure state");
   assert.equal(await panel.isVisible(), true, "mobile Ship assignment detail must be visible after activation");
   assert.ok((await panel.textContent())?.trim(), "mobile Ship disclosure must contain the selected assignment detail");
   await first.click();
   assert.equal(await panel.isVisible(), false, "mobile Ship disclosure must collapse on a second activation");
+  assert.equal(await first.getAttribute("aria-expanded"), "false", "collapsed mobile Ship assignment must restore aria-expanded=false");
 }
 
 async function assertSourceStructure(targetPage, surface, viewport) {

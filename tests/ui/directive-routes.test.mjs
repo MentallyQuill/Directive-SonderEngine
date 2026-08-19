@@ -104,6 +104,7 @@ const PROJECTION = Object.freeze({
       ],
       issues: [{
         id: "cohesion.sensor-calibration",
+        primary_family: "shipboardLife",
         level: 2,
         cohesion: 10,
         player_text: {
@@ -303,7 +304,9 @@ test("Ship renders literal vessel readiness, systems, work orders, and cohesion 
 
   const taskButton = view.querySelector(".ship-task-button");
   const mobilePanel = view.querySelector(".ship-task-mobile-panel");
+  assert.equal(taskButton?.querySelector(".ship-task-category-icon")?.dataset.icon, "life");
   assert.equal(taskButton?.getAttribute("aria-controls"), `ship-task-detail ${mobilePanel?.id}`);
+  assert.equal(taskButton?.getAttribute("aria-expanded"), "false");
   assert.equal(mobilePanel?.hidden, true);
   taskButton?.click();
   assert.equal(taskButton?.getAttribute("aria-expanded"), "true");

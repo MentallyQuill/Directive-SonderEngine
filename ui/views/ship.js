@@ -112,7 +112,6 @@ export function renderShipView(data = {}) {
       const active = button.dataset.taskId === String(issue.id || "");
       setClassState(button, "is-selected", active);
       button.setAttribute("aria-pressed", active ? "true" : "false");
-      button.setAttribute("aria-expanded", active ? "true" : "false");
     }
     for (const badge of mobileBadges) {
       const active = badge.dataset.taskId === String(issue.id || "");
@@ -213,8 +212,10 @@ function createMobileCallout(issue, index) {
 
 function createTaskIcon(issue, index) {
   const families = ["systems", "coordination", "personnel", "training", "life"];
+  const familyAliases = { shipboardLife: "life" };
   const icon = createElement("span", "ship-task-category-icon");
-  icon.dataset.icon = present(issue.primary_family) ? String(issue.primary_family) : families[index % families.length];
+  const authored = present(issue.primary_family) ? String(issue.primary_family) : "";
+  icon.dataset.icon = familyAliases[authored] || (families.includes(authored) ? authored : families[index % families.length]);
   icon.setAttribute("aria-hidden", "true");
   return icon;
 }
