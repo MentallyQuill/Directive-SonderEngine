@@ -47,13 +47,23 @@ test("active-story focus enters Directive before a delayed projection resolves",
 
   const focus = directiveUi.createDirectiveFocusController(sonder, window.document);
   focus.open();
-  await new Promise((resolve) => window.setTimeout(resolve, 25));
+  await waitFor(
+    () => window.document.activeElement?.classList.contains("directive-close-action"),
+    window,
+  );
 
   assert.equal(window.document.activeElement?.classList.contains("directive-close-action"), true);
   resolveProjection({});
   await rendering;
   window.close();
 });
+
+async function waitFor(predicate, window, timeoutMs = 500) {
+  const deadline = Date.now() + timeoutMs;
+  while (!predicate() && Date.now() < deadline) {
+    await new Promise((resolve) => window.setTimeout(resolve, 5));
+  }
+}
 
 test("opening Directive moves focus from the launcher into the view", () => {
   const launcher = focusable();

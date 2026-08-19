@@ -1,6 +1,6 @@
 [project]
 name = "directive-sonder-engine"
-version = "0.1.0"
+version = "0.2.0"
 description = "Directive campaign extension for Sonder Engine"
 requires-python = ">=3.11"
 

@@ -9,16 +9,37 @@ import { renderCreatorView } from "../../ui/views/creator.js";
 const PLAYER_VALUES = Object.freeze({
   name: "Avery Quill",
   pronouns_or_address: "Commander Quill",
-  species: "Human",
+  species: "human",
   age_band: "mid-career",
   appearance: "Close-cropped dark hair and a composed bearing.",
-  career_background: "Starfleet operations and logistics",
-  formative_experience: "Fleet service during the Dominion War",
-  assignment_reason: "Requested by Captain Whitaker",
+  career_background: "operations-logistics",
+  formative_experience: "dominion-war-fleet-service",
+  assignment_reason: "requested-by-captain",
+  insight_trait: "analytical",
+  connection_trait: "candid",
+  execution_trait: "decisive",
+  flaw: "guarded",
+});
+
+const PLAYER_START_PAYLOAD = Object.freeze({
+  name: "Avery Quill",
+  pronouns_or_address: "Commander Quill",
+  species: "Human",
+  age_band: "Mid-career",
+  appearance: "Close-cropped dark hair and a composed bearing.",
+  career_background: "Operations and logistics",
+  formative_experience: "Dominion War fleet service",
+  assignment_reason: "Requested by the captain",
   insight_trait: "Analytical",
   connection_trait: "Candid",
   execution_trait: "Decisive",
   flaw: "Guarded",
+});
+
+const STEP_FIELDS = Object.freeze({
+  identity: Object.freeze(["name", "pronouns_or_address", "species", "age_band", "appearance"]),
+  service: Object.freeze(["career_background", "formative_experience", "assignment_reason"]),
+  personality: Object.freeze(["insight_trait", "connection_trait", "execution_trait", "flaw"]),
 });
 
 test("Campaign renders Directive's dashboard without inventing missing facts", () => {
@@ -78,55 +99,150 @@ test("Campaign media fails to a framed placeholder and null metrics stay unavail
   fixture.window.close();
 });
 
-test("Creator keeps required fields across four steps, blocks early submit, and renders a literal review", async () => {
+test("Creator renders Directive's official commissioning structure and locked progression", async () => {
+  const fixture = installDomFixture();
+  const state = { step: "identity", input: {}, status: "" };
+  const view = renderCreatorView(state, {});
+  fixture.document.body.append(view);
+
+  assert.match(view.className, /\bdirective-creator-workspace\b/);
+  assert.match(view.className, /\bdirective-creator-console\b/);
+  assert.match(view.className, /\bdirective-lcars-panel\b/);
+  assert.equal(view.noValidate, true);
+  assert.equal(view.dataset.creatorForm, "true");
+  assert.equal(view.dataset.directiveScrollOwner, "true");
+  assert.ok(view.querySelector(".directive-creator-overview-media-deck .directive-creator-overview-media img"));
+  assert.ok(view.querySelector(".directive-creator-portrait-tile .directive-player-portrait-frame"));
+  assert.deepEqual(
+    [...view.querySelectorAll("[data-creator-step-button]")]
+      .map((button) => button.querySelector("span:not(.directive-creator-step-state)")?.textContent),
+    ["Identity", "Service", "Personality", "Review"],
+  );
+  assert.equal(view.dataset.creatorActiveStep, "identity");
+  const stepButtons = [...view.querySelectorAll("[data-creator-step-button]")];
+  assert.deepEqual(
+    stepButtons.map((button) => [button.dataset.creatorStepState, button.disabled]),
+    [["active", false], ["locked", true], ["locked", true], ["locked", true]],
+  );
+  assert.deepEqual(
+    [...view.querySelectorAll(".directive-creator-command-bar .directive-button")].map((button) => button.textContent.trim()),
+    ["Campaign Library", "Save Draft", "Back", "Next: Service", "Discard Character"],
+  );
+  assert.deepEqual(
+    [...view.querySelectorAll('[data-creator-step="identity"] .directive-field-control')].map((control) => control.dataset.inputPath),
+    ["identity.name", "identity.pronounsOrAddress", "identity.speciesId", "identity.ageBandId", "identity.appearance"],
+  );
+  assert.equal(view.querySelector('[name="species"]')?.tagName, "SELECT");
+  assert.equal(view.querySelector('[name="age_band"]')?.tagName, "SELECT");
+  assert.equal(view.querySelector('[data-creator-step="service"] [data-creator-section-wand="service"]')?.disabled, true);
+
+  click(view, ".directive-creator-next-command");
+  assert.equal(state.step, "identity");
+  assert.match(view.querySelector('[role="status"]')?.textContent || "", /Complete Identity before continuing/);
+
+  fillStep(fixture.window, view, "identity");
+  click(view, ".directive-creator-next-command");
+  assert.equal(state.step, "service");
+  assert.equal(view.dataset.creatorActiveStep, "service");
+  assert.equal(stepButtons[0].dataset.creatorStepState, "complete");
+  assert.equal(stepButtons[1].dataset.creatorStepState, "active");
+  assert.equal(stepButtons[2].disabled, true);
+  fixture.window.close();
+});
+
+test("Creator completes every official section, renders difficulty cards, and submits the full dossier", async () => {
   const fixture = installDomFixture();
   const state = { step: "identity", input: {}, status: "" };
   const submitted = [];
   const view = renderCreatorView(state, {
-    startCampaign: async (payload) => { submitted.push(payload); },
+    provisionCampaign: async (payload) => { submitted.push(payload); return 44; },
+    openCampaign: async () => {},
+    refreshCampaign: async () => {},
   });
   fixture.document.body.append(view);
 
-  assert.match(view.className, /\bdirective-creator-workspace\b/);
-  assert.equal(view.noValidate, true);
-  assert.deepEqual(
-    [...view.querySelectorAll("[data-creator-step]")]
-      .filter((element) => element.matches("button"))
-      .map((button) => button.textContent),
-    ["Identity", "Service", "Command Profile", "Review"],
-  );
-  assert.equal([...view.querySelectorAll("[name]")].filter((control) => control.required).length, 13);
-  assert.equal(view.dataset.creatorActiveStep, "identity");
-  const stepButtons = [...view.querySelectorAll('button[data-creator-step]')];
-  const stepPanels = [...view.querySelectorAll('[role="tabpanel"]')];
-  assert.ok(stepButtons.every((button) => button.getAttribute("aria-controls")));
-  assert.ok(stepPanels.every((panel) => panel.getAttribute("aria-labelledby")));
-  assert.deepEqual(
-    stepButtons.map((button) => button.getAttribute("aria-controls")),
-    stepPanels.map((panel) => panel.id),
-  );
-
-  dispatchKeyboard(fixture.window, stepButtons[0], "ArrowRight");
-  assert.equal(state.step, "service");
-  assert.equal(view.dataset.creatorActiveStep, "service");
-  assert.equal(fixture.document.activeElement, stepButtons[1]);
-
-  setValue(fixture.window, view.querySelector('[name="name"]'), PLAYER_VALUES.name);
-  click(view, '[data-creator-step="identity"]');
-  assert.equal(view.querySelector('[name="name"]').value, PLAYER_VALUES.name);
-
-  for (const [name, value] of Object.entries(PLAYER_VALUES)) {
-    setValue(fixture.window, view.querySelector(`[name="${name}"]`), value);
-  }
-  setValue(fixture.window, view.querySelector('[name="simulation_mode"]'), "Exploration", "change");
-  await submit(fixture.window, view);
+  fillStep(fixture.window, view, "identity");
+  click(view, ".directive-creator-next-command");
+  fillStep(fixture.window, view, "service");
+  click(view, ".directive-creator-next-command");
+  fillStep(fixture.window, view, "personality");
+  click(view, ".directive-creator-next-command");
   assert.equal(state.step, "review");
   assert.equal(view.dataset.creatorActiveStep, "review");
-  assert.equal(fixture.document.activeElement, stepButtons[3]);
-  assert.match(view.querySelector("[data-creator-review]")?.textContent || "", /Avery Quill/);
-  assert.match(view.querySelector("[data-creator-review]")?.textContent || "", /Commander Quill/);
-  assert.match(view.querySelector("[data-creator-review]")?.textContent || "", /Exploration/);
-  assert.equal(submitted.length, 0, "ephemeral step changes must not call the host");
+  assert.equal(view.querySelectorAll(".directive-creator-difficulty-option").length, 2);
+  assert.equal(view.querySelector('[data-creator-difficulty-option="Command"]')?.getAttribute("aria-checked"), "true");
+  click(view, '[data-creator-difficulty-option="Exploration"]');
+  assert.equal(view.querySelector('[name="simulation_mode"]')?.value, "Exploration");
+  assert.match(view.querySelector(".directive-creator-difficulty-summary")?.textContent || "", /Story-forward/);
+  setValue(fixture.window, view.querySelector('[name="brief_biography"]'), "Avery Quill earned command through difficult relief work.");
+  setValue(fixture.window, view.querySelector('[name="public_reputation"]'), "Known as a careful and candid officer.");
+
+  await submit(fixture.window, view);
+  assert.equal(submitted.length, 1);
+  assert.deepEqual(submitted[0], {
+    ...PLAYER_START_PAYLOAD,
+    service_summary: "Operations and logistics; shaped by Dominion War fleet service.",
+    command_style: "Analytical, Candid, and Decisive; Guarded remains a pressure point.",
+    brief_biography: "Avery Quill earned command through difficult relief work.",
+    public_reputation: "Known as a careful and candid officer.",
+    simulation_mode: "Exploration",
+  });
+  fixture.window.close();
+});
+
+test("Creator session draft, discard, portrait, and bounded assist controls are functional", async () => {
+  const fixture = installDomFixture();
+  const state = { step: "identity", input: {}, status: "" };
+  let libraryReturns = 0;
+  let discards = 0;
+  const view = renderCreatorView(state, {
+    returnToCampaignLibrary: () => { libraryReturns += 1; },
+    discardCreatorDraft: () => { discards += 1; },
+    generateCreatorSectionDraft: async () => ({
+      ok: true,
+      source: "local-fallback",
+      mode: "create",
+      fields: {
+        "identity.name": "Ari Venn",
+        "identity.pronounsOrAddress": "Commander Venn",
+        "identity.speciesId": "human",
+        "identity.ageBandId": "mid-career",
+        "identity.appearance": "A composed officer with an observant command presence.",
+      },
+      notes: ["Review before applying."],
+    }),
+  });
+  fixture.document.body.append(view);
+
+  click(view, ".directive-creator-save-command");
+  assert.match(view.querySelector('[role="status"]')?.textContent || "", /Draft saved in this Directive session/);
+  click(view, ".directive-creator-route-exit-command");
+  assert.equal(libraryReturns, 1);
+
+  click(view, '[data-creator-section-wand="identity"]');
+  await tick();
+  const dialog = fixture.document.querySelector('[data-creator-assist-modal="identity"]');
+  assert.equal(dialog?.dataset.creatorAssistState, "result");
+  click(dialog, '[data-creator-assist-action="apply"]');
+  await tick();
+  assert.equal(view.querySelector('[name="name"]')?.value, "Ari Venn");
+  assert.equal(state.input.name, "Ari Venn");
+
+  const fileInput = view.querySelector('.directive-creator-portrait-tile input[type="file"]');
+  const portrait = new fixture.window.File([new Uint8Array([137, 80, 78, 71])], "avery.png", { type: "image/png" });
+  Object.defineProperty(fileInput, "files", { configurable: true, value: [portrait] });
+  fileInput.dispatchEvent(new fixture.window.Event("change", { bubbles: true }));
+  await tick();
+  assert.match(state.input.portrait_data_url || "", /^data:image\/png;base64,/);
+  assert.match(view.querySelector(".directive-creator-player-portrait img")?.src || "", /^data:image\/png;base64,/);
+  click(view, ".directive-creator-portrait-remove");
+  assert.equal(state.input.portrait_data_url, "");
+
+  fixture.window.confirm = () => true;
+  globalThis.confirm = fixture.window.confirm;
+  click(view, ".directive-creator-discard-command");
+  assert.equal(discards, 1);
+  assert.deepEqual(state.input, { simulation_mode: "Command" });
   fixture.window.close();
 });
 
@@ -155,18 +271,21 @@ test("Directive provisions once at final review, opens the chat, reports progres
   assert.equal(container.querySelector(".directive-expanded-shell")?.dataset.activeRoute, "campaign");
   openCreator(container);
   assert.ok(container.querySelector(".directive-creator-workspace"));
-  for (const [name, value] of Object.entries(PLAYER_VALUES)) {
-    setValue(fixture.window, container.querySelector(`[name="${name}"]`), value);
-  }
-  setValue(fixture.window, container.querySelector('[name="simulation_mode"]'), "Exploration", "change");
-  click(container, '[data-creator-step="review"]');
+  fillCreator(fixture.window, container);
 
   await submit(fixture.window, container.querySelector("form"));
   assert.equal(calls.length, 1);
   assert.deepEqual(calls[0], {
     method: "POST",
     path: "/api/extensions/directive/x/start",
-    body: { ...PLAYER_VALUES, simulation_mode: "Exploration" },
+    body: {
+      ...PLAYER_START_PAYLOAD,
+      service_summary: "Operations and logistics; shaped by Dominion War fleet service.",
+      command_style: "Analytical, Candid, and Decisive; Guarded remains a pressure point.",
+      brief_biography: "Avery Quill is a Human Starfleet Commander assigned as Executive Officer of the U.S.S. Breckenridge on stardate 53068.4. Their background in Operations and logistics and formative experience with Dominion War fleet service made them a credible choice for the Asterion Reach mission. Their command style is shaped by Analytical, Candid, and Decisive, while Guarded remains a pressure point they will need to manage in command.",
+      public_reputation: "Avery Quill is regarded as a capable Commander whose Operations and logistics background makes the Breckenridge assignment plausible, though the crew is still learning what kind of XO they have received.",
+      simulation_mode: "Exploration",
+    },
   });
   assert.deepEqual(opened, []);
   assert.equal(refreshes, 0);
@@ -205,6 +324,52 @@ test("A failed chat open retries only open and never provisions a second story",
   assert.match(container.querySelector('[role="status"]')?.textContent || "", /created.*retry opening/i);
   await submit(fixture.window, container.querySelector("form"));
   assert.deepEqual([posts, opens, refreshes], [1, 2, 1]);
+  fixture.window.close();
+});
+
+test("Creator app keeps session drafts and routes bounded assist through Sonder", async () => {
+  const fixture = installDomFixture();
+  const calls = [];
+  const sonder = {
+    state: () => ({ chatId: null }),
+    api: async (method, path, body) => {
+      calls.push({ method, path, body });
+      return {
+        ok: true,
+        source: "provider",
+        mode: "create",
+        fields: { "identity.name": "Ari Venn" },
+        notes: [],
+        warnings: [],
+      };
+    },
+    chats: { open: async () => {} },
+    refresh: async () => {},
+    closeView: () => {},
+  };
+  const container = fixture.document.createElement("div");
+  fixture.document.body.append(container);
+  await createDirectiveView(sonder).render(container);
+  openCreator(container);
+
+  const wand = container.querySelector('[data-creator-section-wand="identity"]');
+  assert.equal(wand?.disabled, false);
+  click(container, '[data-creator-section-wand="identity"]');
+  await tick();
+  assert.deepEqual(calls[0], {
+    method: "POST",
+    path: "/api/extensions/directive/x/creator-assist",
+    body: { section_id: "identity", input: { simulation_mode: "Command" } },
+  });
+  click(fixture.document, '[data-creator-assist-action="apply"]');
+  await tick();
+  assert.equal(container.querySelector('[name="name"]')?.value, "Ari Venn");
+
+  click(container, ".directive-creator-save-command");
+  click(container, ".directive-creator-route-exit-command");
+  assert.ok(container.querySelector(".campaign-browser"));
+  openCreator(container);
+  assert.equal(container.querySelector('[name="name"]')?.value, "Ari Venn");
   fixture.window.close();
 });
 
@@ -299,10 +464,24 @@ function setValue(window, control, value, eventType = "input") {
 }
 
 function fillCreator(window, root) {
-  for (const [name, value] of Object.entries(PLAYER_VALUES)) {
-    setValue(window, root.querySelector(`[name="${name}"]`), value);
-  }
+  fillStep(window, root, "identity");
+  click(root, ".directive-creator-next-command");
+  fillStep(window, root, "service");
+  click(root, ".directive-creator-next-command");
+  fillStep(window, root, "personality");
+  click(root, ".directive-creator-next-command");
   setValue(window, root.querySelector('[name="simulation_mode"]'), "Exploration", "change");
+}
+
+function fillStep(window, root, step) {
+  for (const name of STEP_FIELDS[step]) {
+    setValue(window, root.querySelector(`[name="${name}"]`), PLAYER_VALUES[name],
+      root.querySelector(`[name="${name}"]`)?.tagName === "SELECT" ? "change" : "input");
+  }
+}
+
+function tick() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 function openCreator(root) {

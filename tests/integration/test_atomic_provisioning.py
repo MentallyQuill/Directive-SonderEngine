@@ -53,6 +53,8 @@ class RecordingAPI:
     def __init__(self):
         self.routes = {}
         self.provision_calls = []
+        self.model_lanes = []
+        self.model_calls = []
 
     def add_route(self, path, fn, *, methods=("GET",)):
         for method in methods:
@@ -63,7 +65,22 @@ class RecordingAPI:
         return {"chat_id": 42, "name": "Ashes of Peace", "schema": 2}
 
     def add_model_lane(self, name, **kwargs):
+        self.model_lanes.append((name, kwargs))
         return f"ext:directive:{name}"
+
+    def llm_json(self, system, payload, **kwargs):
+        self.model_calls.append((system, payload, kwargs))
+        return {
+            "fields": {
+                "service.careerBackgroundId": "operations-logistics",
+                "service.formativeExperienceId": "dominion-war-fleet-service",
+                "service.assignmentReasonId": "requested-by-captain",
+                "dossier.serviceSummary": "Operations and logistics shaped by fleet service.",
+                "identity.name": "must not cross section boundaries",
+                "private.secret": "must never be accepted",
+            },
+            "notes": ["Review this generated service draft.", 42],
+        }
 
     def add_stage(self, *args, **kwargs):
         pass
@@ -100,6 +117,57 @@ def test_start_route_provisions_once_with_every_turn_zero_value():
     }
 
 
+def test_creator_assist_uses_a_dedicated_lane_and_allowlists_section_output():
+    api = RecordingAPI()
+    routes.register(api)
+
+    result = api.routes[("POST", "/creator-assist")](Request({
+        "section_id": "service",
+        "input": {
+            "identity.name": "Sam Vickers",
+            "identity.speciesId": "human",
+        },
+    }))
+
+    assert ("creator-assist", {
+        "label": "Directive · Creator Assist",
+        "description": "Drafts one bounded player character creator section on explicit request.",
+    }) in api.model_lanes
+    assert api.model_calls[0][2]["role"] == "ext:directive:creator-assist"
+    assert result == {
+        "ok": True,
+        "source": "provider",
+        "mode": "create",
+        "fields": {
+            "service.careerBackgroundId": "operations-logistics",
+            "service.formativeExperienceId": "dominion-war-fleet-service",
+            "service.assignmentReasonId": "requested-by-captain",
+            "dossier.serviceSummary": "Operations and logistics shaped by fleet service.",
+        },
+        "notes": ["Review this generated service draft."],
+        "warnings": [],
+    }
+
+
+def test_creator_assist_falls_back_without_inventing_player_identity():
+    api = RecordingAPI()
+    api.llm_json = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("provider unavailable"))
+    routes.register(api)
+
+    result = api.routes[("POST", "/creator-assist")](Request({
+        "section_id": "identity",
+        "input": {},
+    }))
+
+    assert result["ok"] is True
+    assert result["source"] == "local-fallback"
+    assert "identity.name" not in result["fields"]
+    assert "identity.pronounsOrAddress" not in result["fields"]
+    assert set(result["fields"]) <= {
+        "identity.speciesId", "identity.ageBandId", "identity.appearance",
+    }
+
+
 def test_start_route_accepts_simulation_mode_outside_player_identity():
     api = RecordingAPI()
     routes.register(api)
@@ -126,12 +194,16 @@ def live_sonder(tmp_path, monkeypatch, repo_root):
     sonder_root = Path(
         os.environ.get("SONDER_ENGINE_ROOT") or repo_root.parent / "Sonder_Engine"
     )
-    if not (sonder_root / "extension_runtime" / "api.py").is_file():
+    if not (
+        (sonder_root / "extension_runtime" / "api.py").is_file()
+        and (sonder_root / "web" / "app.py").is_file()
+        and (sonder_root / "core" / "db.py").is_file()
+    ):
         pytest.skip(f"current Sonder checkout not found at {sonder_root}")
     monkeypatch.syspath_prepend(str(sonder_root))
     monkeypatch.chdir(sonder_root)
 
-    import db
+    from core import db
     import extension_runtime
 
     old_db = db.DB
@@ -152,7 +224,7 @@ def live_sonder(tmp_path, monkeypatch, repo_root):
     monkeypatch.setenv(extension_runtime.ROOT_ENV, str(extensions_root))
     monkeypatch.delenv(extension_runtime.SAFE_MODE_ENV, raising=False)
     extension_runtime.reload()
-    from db import set_setting
+    from core.db import set_setting
 
     installed = extension_runtime.installed_extensions(refresh=True)
     assert "directive" in installed, extension_runtime.load_errors()
@@ -231,7 +303,7 @@ def test_saved_game_delete_identifier_survives_the_real_sonder_dispatcher(live_s
     current = extension_runtime.dispatch_route(
         "directive", "POST", "/start", body=player_payload()
     )["chat_id"]
-    import app as app_module
+    from web import app as app_module
 
     saved = app_module.chat_import({"data": app_module.chat_export(current)})["id"]
     record = {
@@ -246,7 +318,7 @@ def test_saved_game_delete_identifier_survives_the_real_sonder_dispatcher(live_s
     )
 
     from fastapi.testclient import TestClient
-    import guest_access as guest
+    from web import guest_access as guest
 
     guest.reset_host_account()
     try:
@@ -364,9 +436,9 @@ def test_current_sonder_serves_the_directive_module_graph_and_lcars_styles(live_
 
 def test_current_sonder_checkpoint_branch_and_archive_carry_directive_state(live_sonder):
     extension_runtime, api, db, _path = live_sonder
-    from checkpoints import ensure_checkpoint, restore_checkpoint
-    from db import wset
-    import app
+    from persist.checkpoints import ensure_checkpoint, restore_checkpoint
+    from core.db import wset
+    from web import app
 
     made = extension_runtime.dispatch_route(
         "directive", "POST", "/start", body=player_payload()

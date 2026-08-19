@@ -220,6 +220,26 @@ def _player_profile(api, chat_id: int, player_view: Mapping[str, Any], source) -
         "billet": str(locked_role.get("billet") or "Executive Officer"),
         "role": str(locked_role.get("commandAuthority") or ""),
     })
+    dossier = {
+        field: value.strip()
+        for field in (
+            "service_summary", "command_style", "brief_biography", "public_reputation",
+        )
+        if isinstance((value := profile.get(field)), str) and value.strip()
+    }
+    if dossier:
+        projected["dossier"] = dossier
+    portrait = profile.get("portrait_data_url")
+    if (
+        isinstance(portrait, str)
+        and portrait.startswith((
+            "data:image/png;base64,", "data:image/jpeg;base64,", "data:image/webp;base64,",
+        ))
+    ):
+        projected["portrait"] = {
+            "alt": projected.get("name") or "Player character portrait",
+            "variants": {"detail": portrait, "thumb": portrait},
+        }
     return projected
 
 

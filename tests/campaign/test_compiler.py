@@ -44,6 +44,43 @@ def test_player_setup_requires_every_authored_creation_field():
         PlayerSetup.from_dict(payload)
 
 
+def test_player_setup_preserves_bounded_optional_dossier_and_portrait_fields():
+    payload = {
+        **player_payload(),
+        "service_summary": "Operations officer with a postwar logistics record.",
+        "command_style": "Analytical, candid, and decisive under pressure.",
+        "brief_biography": "Sam earned command through difficult relief work.",
+        "public_reputation": "Known as a careful and candid officer.",
+        "portrait_data_url": "data:image/png;base64,iVBORw0KGgo=",
+    }
+
+    player = PlayerSetup.from_dict(payload)
+    bundle = compile_ashes_archive(load_ashes_source(), player)
+
+    assert bundle.documents["player/profile"] == payload
+    assert bundle.archive["resources"]["persona"]["sheet"]["knowledge"]["public_history"] == (
+        "Sam earned command through difficult relief work.\n\n"
+        "Public reputation: Known as a careful and candid officer."
+    )
+
+
+def test_player_setup_rejects_unbounded_or_unsupported_portraits():
+    unsupported = {**player_payload(), "portrait_data_url": "data:image/svg+xml;base64,PHN2Zz4="}
+    with pytest.raises(ProvisioningError, match="portrait_data_url"):
+        PlayerSetup.from_dict(unsupported)
+
+    oversized = {**player_payload(), "brief_biography": "x" * 1501}
+    with pytest.raises(ProvisioningError, match="brief_biography"):
+        PlayerSetup.from_dict(oversized)
+
+    oversized_portrait = {
+        **player_payload(),
+        "portrait_data_url": "data:image/png;base64," + ("A" * 100_000),
+    }
+    with pytest.raises(ProvisioningError, match="portrait_data_url"):
+        PlayerSetup.from_dict(oversized_portrait)
+
+
 def test_compiles_a_complete_sonder_archive_with_one_persona_and_seven_crew():
     bundle = compile_bundle()
     archive = bundle.archive

@@ -47,6 +47,15 @@ _PLAYER_FIELDS = (
     "execution_trait",
     "flaw",
 )
+_OPTIONAL_PLAYER_FIELDS = (
+    "service_summary",
+    "command_style",
+    "brief_biography",
+    "public_reputation",
+    "portrait_data_url",
+)
+_DOSSIER_TEXT_LIMIT = 1500
+_PORTRAIT_DATA_URL_LIMIT = 96 * 1024
 
 
 def _plain(value: Any) -> Any:
@@ -63,6 +72,28 @@ def _required_text(value: Any, field: str) -> str:
     return value.strip()
 
 
+def _optional_text(value: Any, field: str, *, limit: int = _DOSSIER_TEXT_LIMIT) -> str:
+    if value is None or value == "":
+        return ""
+    if not isinstance(value, str):
+        raise ProvisioningError(f"{field} must be text")
+    cleaned = value.strip()
+    if len(cleaned) > limit:
+        raise ProvisioningError(f"{field} must be no longer than {limit} characters")
+    return cleaned
+
+
+def _portrait_data_url(value: Any) -> str:
+    cleaned = _optional_text(value, "portrait_data_url", limit=_PORTRAIT_DATA_URL_LIMIT)
+    if cleaned and not cleaned.startswith((
+        "data:image/png;base64,",
+        "data:image/jpeg;base64,",
+        "data:image/webp;base64,",
+    )):
+        raise ProvisioningError("portrait_data_url must be a PNG, JPEG, or WebP data URL")
+    return cleaned
+
+
 @dataclass(frozen=True)
 class PlayerSetup:
     name: str
@@ -77,6 +108,11 @@ class PlayerSetup:
     connection_trait: str
     execution_trait: str
     flaw: str
+    service_summary: str = ""
+    command_style: str = ""
+    brief_biography: str = ""
+    public_reputation: str = ""
+    portrait_data_url: str = ""
 
     @classmethod
     def from_dict(cls, raw: Any) -> "PlayerSetup":
@@ -85,16 +121,31 @@ class PlayerSetup:
         missing = [field for field in _PLAYER_FIELDS if field not in raw]
         if missing:
             raise ProvisioningError(f"missing player field: {', '.join(missing)}")
-        unknown = sorted(set(raw) - set(_PLAYER_FIELDS))
+        unknown = sorted(set(raw) - set(_PLAYER_FIELDS) - set(_OPTIONAL_PLAYER_FIELDS))
         if unknown:
             raise ProvisioningError(f"unknown player field: {', '.join(unknown)}")
-        return cls(**{
+        values = {
             field: _required_text(raw[field], field)
             for field in _PLAYER_FIELDS
+        }
+        values.update({
+            field: (
+                _portrait_data_url(raw.get(field))
+                if field == "portrait_data_url"
+                else _optional_text(raw.get(field), field)
+            )
+            for field in _OPTIONAL_PLAYER_FIELDS
         })
+        return cls(**values)
 
     def to_dict(self) -> dict[str, str]:
-        return {field: getattr(self, field) for field in _PLAYER_FIELDS}
+        result = {field: getattr(self, field) for field in _PLAYER_FIELDS}
+        result.update({
+            field: getattr(self, field)
+            for field in _OPTIONAL_PLAYER_FIELDS
+            if getattr(self, field)
+        })
+        return result
 
 
 @dataclass(frozen=True)
@@ -144,15 +195,21 @@ def _persona(player: PlayerSetup) -> dict[str, Any]:
     parsed_pronouns = _pronouns(player.pronouns_or_address)
     if parsed_pronouns:
         identity["pronouns"] = parsed_pronouns
+    public_history = (
+        player.brief_biography
+        or (
+            f"{player.name} is a {player.species} Starfleet Commander assigned "
+            "as executive officer of the U.S.S. Breckenridge."
+        )
+    )
+    if player.public_reputation:
+        public_history += f"\n\nPublic reputation: {player.public_reputation}"
     return {
         "identity": identity,
         "embodiment": {"visible": {"summary": player.appearance}},
         "competence": {"abilities": []},
         "knowledge": {
-            "public_history": (
-                f"{player.name} is a {player.species} Starfleet Commander assigned "
-                "as executive officer of the U.S.S. Breckenridge."
-            ),
+            "public_history": public_history,
             "private_history": [
                 {"content": player.career_background, "about": "career background", "known_by": []},
                 {"content": player.formative_experience, "about": "formative experience", "known_by": []},

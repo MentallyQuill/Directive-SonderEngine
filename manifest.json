@@ -1,6 +1,6 @@
 {
   "id": "directive",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "ext_api": 1,
   "name": "Directive",
   "description": "A Star Trek command campaign layer for Sonder Engine.",
@@ -18,6 +18,11 @@
     "routing": true,
     "commit_domains": ["settlement"],
     "routes": [
+      {
+        "method": "POST",
+        "path": "/creator-assist",
+        "description": "Draft one bounded Character Creator section on explicit player request."
+      },
       {
         "method": "POST",
         "path": "/start",

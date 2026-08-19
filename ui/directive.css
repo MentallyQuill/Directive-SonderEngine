@@ -5903,8 +5903,17 @@ html.directive-reorder-grabbing * { cursor: grabbing !important; }
 }
 
 .directive-app .fa-arrow-right::before { content: "\f061"; }
+.directive-app .fa-arrow-left::before { content: "\f060"; }
 .directive-app .fa-bookmark::before { content: "\f02e"; }
+.directive-app .fa-check::before { content: "\f00c"; }
 .directive-app .fa-clock-rotate-left::before { content: "\f1da"; }
+.directive-app .fa-floppy-disk::before { content: "\f0c7"; }
+.directive-app .fa-image::before { content: "\f03e"; }
+.directive-app .fa-play::before { content: "\f04b"; }
+.directive-app .fa-rotate-right::before { content: "\f2f9"; }
+.directive-app .fa-trash-can::before { content: "\f2ed"; }
+.directive-app .fa-wand-magic-sparkles::before { content: "\e2ca"; }
+.directive-app .fa-xmark::before { content: "\f00d"; }
 
 /* Sonder themes style every header element. Directive headers are panels, not
    host chrome, so retain the source element background. */

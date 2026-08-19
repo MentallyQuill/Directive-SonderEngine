@@ -23,6 +23,13 @@ const PLAYER_FIELDS = Object.freeze([
   ["execution_trait"],
   ["flaw"],
 ]);
+const OPTIONAL_PLAYER_FIELDS = Object.freeze([
+  "service_summary",
+  "command_style",
+  "brief_biography",
+  "public_reputation",
+  "portrait_data_url",
+]);
 const SIMULATION_MODES = Object.freeze([
   Object.freeze({ name: "simulation_mode", value: "Command" }),
   Object.freeze({ name: "simulation_mode", value: "Exploration" }),
@@ -86,7 +93,25 @@ export function createDirectiveView(sonder, { onClose = () => sonder.closeView()
               const surface = el("section", {
                 class: "directive-expanded-campaign directive-creator-route",
                 "data-directive-scroll-owner": "true",
-              }, renderCreatorView(state.creator, { provisionCampaign, openCampaign, refreshCampaign }));
+              }, renderCreatorView(state.creator, {
+                provisionCampaign,
+                openCampaign,
+                refreshCampaign,
+                returnToCampaignLibrary: () => {
+                  state.campaign.mode = "command";
+                  drawRoute();
+                },
+                saveCreatorDraft: () => {},
+                discardCreatorDraft: () => {
+                  state.campaign.mode = "command";
+                  drawRoute();
+                },
+                generateCreatorSectionDraft: ({ sectionId, input }) => sonder.api(
+                  "POST",
+                  "/api/extensions/directive/x/creator-assist",
+                  { section_id: sectionId, input },
+                ),
+              }));
               body.append(surface);
             } else {
               body.append(renderCampaignBrowser(state.campaign, {
@@ -132,6 +157,9 @@ export function createDirectiveView(sonder, { onClose = () => sonder.closeView()
         if (!mode) throw new Error("Unsupported simulation mode");
         const body = Object.fromEntries([
           ...PLAYER_FIELDS.map(([name]) => [name, payload[name]]),
+          ...OPTIONAL_PLAYER_FIELDS
+            .filter((name) => typeof payload[name] === "string" && payload[name])
+            .map((name) => [name, payload[name]]),
           [mode.name, mode.value],
         ]);
         const made = await sonder.api("POST", "/api/extensions/directive/x/start", body);

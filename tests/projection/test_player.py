@@ -223,6 +223,33 @@ def test_player_projection_omits_an_unavailable_name_instead_of_inventing_comman
     assert player["service"]["rank_label"] == "Commander"
 
 
+def test_player_projection_exposes_only_player_authored_dossier_and_portrait_data():
+    api = API()
+    api.documents(9).values["player/profile"].update({
+        "service_summary": "Operations officer with a postwar logistics record.",
+        "command_style": "Analytical and candid under pressure.",
+        "brief_biography": "Sam earned command through difficult relief work.",
+        "public_reputation": "Known as a careful officer.",
+        "portrait_data_url": "data:image/webp;base64,UklGRg==",
+    })
+
+    player = _player_profile(api, 9, api.player_view(9, None), load_ashes_source())
+
+    assert player["dossier"] == {
+        "service_summary": "Operations officer with a postwar logistics record.",
+        "command_style": "Analytical and candid under pressure.",
+        "brief_biography": "Sam earned command through difficult relief work.",
+        "public_reputation": "Known as a careful officer.",
+    }
+    assert player["portrait"] == {
+        "alt": "Sam Vickers",
+        "variants": {
+            "detail": "data:image/webp;base64,UklGRg==",
+            "thumb": "data:image/webp;base64,UklGRg==",
+        },
+    }
+
+
 def test_projection_exposes_only_valid_saved_game_registry_records():
     projection = create_player_projection(API(), 9)
 

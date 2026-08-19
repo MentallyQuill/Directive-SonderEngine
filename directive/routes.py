@@ -3,6 +3,7 @@
 from .campaign.compiler import PlayerSetup, ProvisioningError, compile_ashes_archive
 from .campaign.source import load_ashes_source
 from .campaign.timeline import register_saved_game, unregister_saved_game
+from .creator_assist import creator_assist
 from .command.service import (
     bind_pending_edge_to_generation,
     cancel_command_bearing_edge,
@@ -17,6 +18,16 @@ from .state.contracts import PACKAGE_ID, PACKAGE_VERSION
 
 def register(api):
     """Register Directive only through the public Sonder extension facade."""
+    creator_assist_role = api.add_model_lane(
+        "creator-assist",
+        label="Directive · Creator Assist",
+        description="Drafts one bounded player character creator section on explicit request.",
+    )
+    api.add_route(
+        "/creator-assist",
+        lambda request: creator_assist(api, request, creator_assist_role),
+        methods=("POST",),
+    )
     api.add_route("/start", lambda request: _start(api, request), methods=("POST",))
     api.add_route(
         "/projection",
