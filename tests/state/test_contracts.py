@@ -124,6 +124,15 @@ def test_package_actor_binding_round_trips_exactly():
     assert PackageActorBinding.from_dict(value).to_dict() == value
 
 
+def test_package_actor_binding_preserves_an_older_authored_package_version():
+    value = {
+        **valid_crew_profile()["binding"],
+        "package_version": "0.2.0-pre-alpha.7",
+    }
+
+    assert PackageActorBinding.from_dict(value).to_dict() == value
+
+
 def test_crew_profile_uses_a_private_binding_instead_of_a_second_identity():
     value = valid_crew_profile()
 

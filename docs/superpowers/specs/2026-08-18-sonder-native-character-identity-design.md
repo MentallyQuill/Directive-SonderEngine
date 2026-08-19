@@ -73,7 +73,9 @@ The migration is lossless and versioned:
 
 - Exact `directive.crewDomain.v1` values convert `crew_id` into
   `binding.actor_ref` and retain every service field.
-- Exact v2 values validate and normalize without changing meaning.
+- Exact v2 values validate and normalize without changing meaning, retaining
+  the authored package version so an extension update does not invalidate an
+  older story.
 - Unknown kinds, schemas, roots, duplicate actor bindings, or invalid values are
   rejected rather than guessed.
 - Registration performs a best-effort migration over stories returned by

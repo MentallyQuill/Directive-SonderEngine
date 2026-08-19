@@ -180,14 +180,11 @@ class PackageActorBinding:
             "binding.kind",
         )
         _exact(value["package_id"], PACKAGE_ID, "binding.package_id")
-        _exact(
-            value["package_version"],
-            PACKAGE_VERSION,
-            "binding.package_version",
-        )
         return cls(
             package_id=PACKAGE_ID,
-            package_version=PACKAGE_VERSION,
+            package_version=_text(
+                value["package_version"], "binding.package_version"
+            ),
             actor_ref=_text(value["actor_ref"], "binding.actor_ref"),
         )
 
