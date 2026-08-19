@@ -50,7 +50,7 @@ Current Sonder source and tests provide the migration's required host seams:
 
 - extension discovery, package imports, isolation and ES-module UI;
 - `provision_story` with state, frame state, contexts, documents, authority and provenance in one transaction;
-- `story_view` schema 2 and player-safe `player_view.people` with stable ids and explicit public-fact allowlists;
+- `story_view` schema 3 and player-safe `player_view.people` with immutable recognized ids, viewer-scoped opaque observed ids, and explicit public-fact allowlists;
 - chat-global, frame-scoped, per-character and document extension state carried through checkpoints, archives and branches;
 - transactional extension commit domains with fail policy;
 - `actor_only` player-authority enforcement;
@@ -61,10 +61,10 @@ No upstream Sonder blocker is currently proven. Historical gap reports under `do
 
 ## Latest executable evidence
 
-- `$env:SONDER_ENGINE_ROOT='F:\git\Sonder_Engine'; py -3.13 -m pytest -q --disable-warnings --basetemp .tmp/pytest-final-pass`: **105 passed** (150 warnings from the current Sonder host's Pydantic deprecations). The six host-dependent cases that skip without `SONDER_ENGINE_ROOT` executed.
+- `$env:SONDER_ENGINE_ROOT='F:\git\Sonder_Engine'; py -3.13 -m pytest -q --disable-warnings --basetemp .tmp/pytest-latest-sonder-audit`: **106 passed** (150 warnings from the current Sonder host's Pydantic deprecations). The six host-dependent cases that skip without `SONDER_ENGINE_ROOT` executed.
 - Current-host integration covers discovery/activation, route dispatch, archive import/readback, an unchanged database hash on invalid input, player projection, fatal player-dialogue correction without state mutation, exact-turn settlement commit, checkpoint rewind, branch carriage, portable export/import, and ES-module/CSS serving.
 - `C:\Python313\python.exe -m compileall -q directive tests`: passed.
-- `node --check` for every UI module and `node --test tests/ui/*.test.mjs`: passed (**18 tests**).
+- `node --check` for every UI module and `node --test tests/ui/*.test.mjs`: passed (**19 tests**).
 - Runtime forbidden-dependency scan has no SillyTavern/provider/parallel-timeline imports; only the authored-source rejection list names retired countdown keys.
 - All 37 assets referenced by the Ashes package were copied with zero SHA-256 mismatches from the pinned Directive checkout.
 - Actual Playwright Chromium 1.61.1 against live Sonder captured onboarding plus Campaign, Mission, People, Ship and Settings at 1440×900 and 390×844. The gate found no Directive overflow, broken media, console errors, page errors, failed requests or HTTP failures. Keyboard launch moves focus into the view, route keys rove, Escape closes and restores the current launcher, and reduced-motion styles resolve to effectively zero duration.
