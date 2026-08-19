@@ -4,6 +4,7 @@ import copy
 
 from directive.campaign.compiler import PlayerSetup, compile_ashes_archive
 from directive.campaign.source import load_ashes_source
+from directive.command.bearing import award, project_bearing, reserve_cohesion_relief
 from directive.settlement.service import (
     commit_settlement,
     interpret_settlement,
@@ -71,6 +72,12 @@ class API:
 
     def correction(self, code, message, evidence=None):
         return {"code": code, "message": message, "evidence": evidence}
+
+    def documents(self, chat_id):
+        class EmptyDocuments:
+            def get(self, path):
+                return None
+        return EmptyDocuments()
 
 
 class StepView:
@@ -148,6 +155,29 @@ def test_malformed_model_output_becomes_no_proposal_and_never_mutates_frame():
 
     assert output["claims"] == []
     assert output["rejected"]
+
+
+def test_no_proposal_persists_a_refund_when_reserved_cohesion_target_disappears():
+    frame = initial_frame()
+    bearing = award(
+        frame["command"]["bearing"], award_id="award.1", source_id="objective.1",
+        reason="Earned through command.", now="2026-08-18T00:00:00+00:00",
+    ).value
+    reserved = reserve_cohesion_relief(
+        bearing, spend_id="spend.1", target_issue_id="cohesion-issue.no-longer-visible",
+        cohesion=5, reason="Resolve the visible issue.", now="2026-08-18T00:01:00+00:00",
+    ).value
+    frame["command"]["bearing"] = reserved
+    api = API(frame)
+    view = CommitView(frame, {})
+
+    result = commit_settlement(view, api)
+
+    projection = project_bearing(view.frame_state.value["command"]["bearing"])
+    assert result["command_bearing_spent"] is False
+    assert projection["balance"] == 1
+    assert projection["pending_cohesion_relief"] is None
+    assert projection["latest_spend"]["status"] == "refunded"
 
 
 def test_ship_work_uses_the_same_bound_proposal_and_effect_ledger():

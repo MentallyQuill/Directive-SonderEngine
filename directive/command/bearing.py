@@ -118,7 +118,7 @@ def validate_bearing(value: Any) -> Validation:
                 errors.append(f"spend {key} target_issue_id is required")
             if not isinstance(relief, int) or isinstance(relief, bool) or not 1 <= relief <= 20:
                 errors.append(f"spend {key} cohesion must be an integer from 1 through 20")
-        if record.get("status") in {"armed", "committed"}:
+        if record.get("status") == "armed":
             if not record.get("armed_by_player_turn_id") or not record.get("armed_at"):
                 errors.append(f"spend {key} armed source is required")
         if record.get("status") == "committed":
@@ -245,8 +245,8 @@ def commit_edge(
         return Result(False, "spend-not-found", next_value)
     if record["status"] == "committed":
         return Result(False, "already-committed", next_value)
-    if record["status"] != "armed":
-        return Result(False, "edge-not-armed", next_value)
+    if record["status"] not in _PENDING:
+        return Result(False, "edge-not-pending", next_value)
     record.update({
         "status": "committed",
         "source_turn_id": _text(source_turn_id, "source_turn_id", 180),

@@ -21,50 +21,25 @@ const PLAYER_VALUES = Object.freeze({
   flaw: "Guarded",
 });
 
-test("Campaign switches Command, Library, and Records without inventing missing facts", () => {
+test("Campaign renders Directive's dashboard without inventing missing facts", () => {
   const fixture = installDomFixture();
   const data = campaignProjection();
   const state = { mode: "command" };
   const view = renderCampaignView(data, state, {});
   fixture.document.body.append(view);
 
-  assert.match(view.className, /\bdirective-campaign-workspace\b/);
+  assert.match(view.className, /\bcampaign-dashboard\b/);
   assert.match(view.className, /\bdirective-expanded-campaign\b/);
   assert.equal(view.dataset.directiveScrollOwner, "true");
   assert.ok(view.querySelector(".campaign-dashboard > .campaign-dashboard-heading"));
   assert.ok(view.querySelector(".campaign-dashboard > .campaign-dashboard-hero"));
   assert.ok(view.querySelector(".campaign-dashboard > .campaign-dashboard-actions"));
-  assert.equal(view.querySelector('[role="tablist"]')?.classList.contains("directive-campaign-command-bar"), true);
-  assert.deepEqual(
-    [...view.querySelectorAll("[data-campaign-mode]")].map((button) => button.textContent),
-    ["Command", "Library", "Records"],
-  );
+  assert.equal(view.querySelector(".directive-campaign-command-bar"), null);
   assert.match(view.textContent, /Ashes of Peace/);
   assert.match(view.textContent, /Avery Quill/);
-  assert.match(view.textContent, /U\.S\.S\. Breckenridge/);
-  assert.match(view.textContent, /Intrepid-class/);
   assert.match(view.textContent, /prelude-a-ship-underway/);
-  assert.match(view.textContent, /57300\.4/);
+  assert.doesNotMatch(view.textContent, /package high concept must not replace the current chapter/i);
   assert.doesNotMatch(view.textContent, /Asterion Station/);
-
-  const modeButtons = [...view.querySelectorAll("[data-campaign-mode]")];
-  const modePanel = view.querySelector(".directive-campaign-mode-panel");
-  assert.ok(modeButtons.every((button) => button.id));
-  assert.ok(modeButtons.every((button) => button.getAttribute("aria-controls") === modePanel?.id));
-  assert.equal(modePanel?.getAttribute("role"), "tabpanel");
-  assert.ok(modePanel?.id);
-  assert.equal(modePanel?.getAttribute("aria-labelledby"), modeButtons[0].id);
-  dispatchKeyboard(fixture.window, modeButtons[0], "ArrowRight");
-  assert.equal(state.mode, "library");
-  assert.equal(fixture.document.activeElement, modeButtons[1]);
-  assert.equal(modePanel?.getAttribute("aria-labelledby"), modeButtons[1].id);
-  assert.match(view.querySelector(".directive-package-card")?.className || "", /\bdirective-package-card\b/);
-  assert.match(view.textContent, /Installed campaign package/);
-
-  click(view, '[data-campaign-mode="records"]');
-  assert.equal(state.mode, "records");
-  assert.match(view.textContent, /Story 27/);
-  assert.match(view.textContent, /Current record/);
 
   const absent = renderCampaignView({ campaign: {}, mission: {}, viewer: {}, ship: {} }, { mode: "command" }, {});
   assert.match(absent.textContent, /Campaign title unavailable\./);
@@ -73,8 +48,8 @@ test("Campaign switches Command, Library, and Records without inventing missing 
   assert.doesNotMatch(absent.textContent, /Ashes of Peace/);
 
   const unprojectedShip = renderCampaignView({ campaign: { id: "ashes-of-peace" }, ship: {} }, { mode: "command" }, {});
-  assert.match(unprojectedShip.textContent, /Ship identity unavailable\./);
-  assert.match(unprojectedShip.textContent, /Ship class unavailable\./);
+  assert.doesNotMatch(unprojectedShip.textContent, /U\.S\.S\. Breckenridge/);
+  assert.doesNotMatch(unprojectedShip.textContent, /Intrepid-class/);
   fixture.window.close();
 });
 
@@ -86,12 +61,12 @@ test("Campaign media fails to a framed placeholder and null metrics stay unavail
   const view = renderCampaignView(data, { mode: "command" }, {});
   fixture.document.body.append(view);
 
-  assert.match(view.textContent, /Stardate unavailable/);
   const frame = view.querySelector(".campaign-hero-media");
   const image = frame?.querySelector("img");
   const placeholder = frame?.querySelector(".directive-media-placeholder");
   assert.ok(frame);
   assert.match(frame.className, /\bdirective-hero-scene\b/);
+  assert.equal(view.querySelector(".campaign-dashboard-hero")?.dataset.heroOrbitBound, "true");
   assert.equal(frame.querySelectorAll('[data-hero-scene-layer]').length, 6);
   assert.equal(frame.querySelectorAll('[data-hero-ship-layer]').length, 3);
   assert.ok(image);
@@ -178,6 +153,7 @@ test("Directive provisions once at final review, opens the chat, reports progres
   await createDirectiveView(sonder).render(container);
 
   assert.equal(container.querySelector(".directive-expanded-shell")?.dataset.activeRoute, "campaign");
+  openCreator(container);
   assert.ok(container.querySelector(".directive-creator-workspace"));
   for (const [name, value] of Object.entries(PLAYER_VALUES)) {
     setValue(fixture.window, container.querySelector(`[name="${name}"]`), value);
@@ -220,6 +196,7 @@ test("A failed chat open retries only open and never provisions a second story",
   const container = fixture.document.createElement("div");
   fixture.document.body.append(container);
   await createDirectiveView(sonder).render(container);
+  openCreator(container);
   fillCreator(fixture.window, container);
   click(container, '[data-creator-step="review"]');
 
@@ -246,6 +223,7 @@ test("A failed refresh retries only refresh after the created story was opened",
   const container = fixture.document.createElement("div");
   fixture.document.body.append(container);
   await createDirectiveView(sonder).render(container);
+  openCreator(container);
   fillCreator(fixture.window, container);
   click(container, '[data-creator-step="review"]');
 
@@ -282,7 +260,7 @@ test("Campaign Continue opens the active Sonder story and returns to story", asy
 function campaignProjection() {
   return {
     chat_id: 27,
-    campaign: { id: "ashes-of-peace", title: "Ashes of Peace", simulation_mode: "Exploration" },
+    campaign: { id: "ashes-of-peace", title: "Ashes of Peace", summary: "Package high concept must not replace the current chapter.", simulation_mode: "Exploration" },
     viewer: { name: "Avery Quill" },
     ship: { name: "U.S.S. Breckenridge", class_name: "Intrepid-class" },
     mission: { id: "prelude-a-ship-underway", status: "active" },
@@ -325,6 +303,10 @@ function fillCreator(window, root) {
     setValue(window, root.querySelector(`[name="${name}"]`), value);
   }
   setValue(window, root.querySelector('[name="simulation_mode"]'), "Exploration", "change");
+}
+
+function openCreator(root) {
+  click(root, '.campaign-desktop-detail .campaign-command-primary');
 }
 
 function dispatchKeyboard(window, target, key) {

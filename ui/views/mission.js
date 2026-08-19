@@ -1,4 +1,5 @@
 import { appendText, createElement } from "../primitives.js";
+import { bindSingleOpenDisclosure } from "../mobile-record-disclosure.js";
 
 export function renderMissionView(data = {}) {
   const mission = data.mission || {};
@@ -17,7 +18,6 @@ export function renderMissionView(data = {}) {
   const detail = createElement("section", "mission-detail mission-desktop-detail");
   detail.dataset.directiveScrollOwner = "true";
   appendMissionDetail(detail, mission, data);
-  detail.append(renderBearing(data.command_bearing || {}));
 
   const mobile = createElement("section", "mission-mobile-accordion");
   mobile.dataset.directiveScrollOwner = "true";
@@ -25,11 +25,16 @@ export function renderMissionView(data = {}) {
   const trigger = createMissionRow(mission, "button");
   trigger.className += " mission-mobile-trigger";
   trigger.type = "button";
-  trigger.setAttribute("aria-expanded", "true");
+  trigger.dataset.mobileRecordKey = String(mission.id || "active-mission");
   const mobileDetail = createElement("div", "mission-mobile-detail");
+  mobileDetail.id = "mission-mobile-detail-" + String(mission.id || "active-mission").replace(/[^a-z0-9]+/gi, "-");
   appendMissionDetail(mobileDetail, mission, data, true);
   record.append(trigger, mobileDetail);
   mobile.append(record);
+  bindSingleOpenDisclosure({
+    records: [{ key: trigger.dataset.mobileRecordKey, trigger, panel: mobileDetail }],
+    initialOpenKey: trigger.dataset.mobileRecordKey,
+  });
 
   root.append(collection, detail, mobile);
   return root;
@@ -137,35 +142,6 @@ function appendTransition(container, transition) {
   for (const summary of transition.outcome_summary || []) list.append(appendText(createElement("li"), summary));
   section.append(list);
   container.append(section);
-}
-
-function renderBearing(bearing) {
-  const section = createElement("section", "directive-v1-command-bearing directive-command-bearing-strip");
-  const available = Number.isInteger(bearing.balance) && bearing.balance >= 0
-    && Number.isInteger(bearing.capacity) && bearing.capacity > 0;
-  if (!available) {
-    section.append(
-      appendText(createElement("span", "directive-v1-kicker"), "Command Bearing"),
-      appendText(createElement("p"), "Command Bearing unavailable."),
-    );
-    return section;
-  }
-  const copy = createElement("div", "directive-command-bearing-copy");
-  copy.append(
-    appendText(createElement("span", "directive-v1-kicker"), "Command Bearing"),
-    appendText(createElement("h2"), `${bearing.balance} of ${bearing.capacity} available`),
-    appendText(createElement("p"), literal(bearing.latest_award_reason, "A reserve earned through meaningful command decisions.")),
-  );
-  const pips = createElement("div", "directive-v1-command-bearing-pips directive-command-bearing-pips");
-  pips.setAttribute("aria-label", `${bearing.balance} of ${bearing.capacity} Command Bearing available`);
-  for (let index = 0; index < bearing.capacity; index += 1) {
-    const pip = createElement("span", index < bearing.balance ? "is-filled" : "");
-    pip.setAttribute("aria-hidden", "true");
-    pips.append(pip);
-  }
-  section.append(copy, pips);
-  if (bearing.pending_edge) section.append(appendText(createElement("p", "directive-v1-command-bearing-pending"), literal(bearing.pending_edge.reason, "A favorable edge is pending.")));
-  return section;
 }
 
 function present(value) {

@@ -4,7 +4,7 @@ import json
 
 from directive.campaign.compiler import PlayerSetup, compile_ashes_archive
 from directive.campaign.source import load_ashes_source
-from directive.projection.player import _mission_projection, create_player_projection
+from directive.projection.player import _mission_projection, _player_profile, create_player_projection
 from directive.state.contracts import PACKAGE_ID, PACKAGE_VERSION
 
 
@@ -26,6 +26,14 @@ class Store:
         return self.value
 
 
+class Documents:
+    def __init__(self, values):
+        self.values = values
+
+    def get(self, key):
+        return self.values.get(key)
+
+
 class API:
     def __init__(self):
         self._frame = Store(frame())
@@ -44,6 +52,34 @@ class API:
                 "public_record": {"birthplace": "Kingston, Ontario, Earth"},
             })
         }
+        self._documents = Documents({
+            "player/profile": {
+                "name": "Sam Vickers",
+                "pronouns_or_address": "they/them",
+                "species": "Human",
+                "age_band": "mid-career",
+                "appearance": "Close-cropped dark hair.",
+                "career_background": "operations-logistics",
+                "formative_experience": "fleet-service",
+                "assignment_reason": "requested-by-captain",
+                "insight_trait": "analytical",
+                "connection_trait": "candid",
+                "execution_trait": "decisive",
+                "flaw": "guarded",
+            },
+            "timeline/saves": {
+                "kind": "directive.timelineRegistry.v1",
+                "schema": 1,
+                "saved_games": [{
+                    "id": "save-42",
+                    "chat_id": 42,
+                    "name": "Before the briefing",
+                    "createdAt": "2026-08-18T12:34:56.000Z",
+                    "chapter": "Prelude: A Ship Underway",
+                    "stardate": 53068.4,
+                }],
+            },
+        })
 
     def frame_state(self, chat_id):
         return self._frame
@@ -67,6 +103,9 @@ class API:
     def char_state(self, chat_id, char_id):
         return self.states.get(char_id, Store({}))
 
+    def documents(self, chat_id):
+        return self._documents
+
 
 def test_projection_joins_directive_crew_only_by_stable_recognized_host_id():
     projection = create_player_projection(API(), 9)
@@ -78,6 +117,13 @@ def test_projection_joins_directive_crew_only_by_stable_recognized_host_id():
         "role": "Commanding Officer",
         "department": "command",
         "public_record": {"birthplace": "Kingston, Ontario, Earth"},
+        "species": "Human",
+        "service": {
+            "organization": "starfleet",
+            "department": "command",
+            "rankCode": "captain",
+            "rankLabel": "Captain",
+        },
         "media": {
             "kind": "crew.portrait.formal",
             "alt": "Captain Mara Whitaker",
@@ -110,6 +156,86 @@ def test_projection_never_exposes_portable_package_identity_material():
         assert forbidden not in rendered
 
 
+def test_projection_exposes_only_public_player_profile_fields_and_authored_role():
+    projection = create_player_projection(API(), 9)
+
+    assert projection["player"] == {
+        "id": "player",
+        "name": "Sam Vickers",
+        "pronouns_or_address": "they/them",
+        "species": "Human",
+        "age_band": "mid-career",
+        "appearance": "Close-cropped dark hair.",
+        "service": {
+            "organization": "starfleet",
+            "department": "command",
+            "rank_code": "commander",
+            "rank_label": "Commander",
+        },
+        "billet": "Executive Officer",
+        "role": "Principal mission commander and coordinator of shipboard operations.",
+    }
+
+
+def test_projection_orders_recognized_crew_by_the_authored_directive_roster():
+    api = API()
+    api.states[12] = Store({
+        "kind": "directive.crewProfile.v2", "schema": 2,
+        "binding": {
+            "kind": "directive.packageActorBinding.v1",
+            "package_id": PACKAGE_ID,
+            "package_version": PACKAGE_VERSION,
+            "actor_ref": "kieran-vale",
+        },
+        "rank": "Lieutenant", "role": "Flight Control Officer", "department": "flight",
+    })
+    original = api.player_view
+    api.player_view = lambda chat_id, viewer: {
+        **original(chat_id, viewer),
+        "people": [
+            {"id": "12", "kind": "character", "display_name": "Kieran Vale", "identity_status": "recognized"},
+            {"id": "11", "kind": "character", "display_name": "Mara Whitaker", "identity_status": "recognized"},
+        ],
+    }
+
+    projection = create_player_projection(api, 9)
+
+    assert [person["display_name"] for person in projection["people"]] == ["Mara Whitaker", "Kieran Vale"]
+    rendered = json.dumps(projection)
+    for forbidden in (
+        "operations-logistics",
+        "fleet-service",
+        "requested-by-captain",
+        "analytical",
+        "candid",
+        "decisive",
+        "guarded",
+    ):
+        assert forbidden not in rendered
+
+
+def test_player_projection_omits_an_unavailable_name_instead_of_inventing_commander():
+    api = API()
+    api.documents(9).values.pop("player/profile", None)
+    player = _player_profile(api, 9, {"viewer": {"id": "player"}}, load_ashes_source())
+
+    assert "name" not in player
+    assert player["service"]["rank_label"] == "Commander"
+
+
+def test_projection_exposes_only_valid_saved_game_registry_records():
+    projection = create_player_projection(API(), 9)
+
+    assert projection["saved_games"] == [{
+        "id": "save-42",
+        "chat_id": 42,
+        "name": "Before the briefing",
+        "createdAt": "2026-08-18T12:34:56.000Z",
+        "chapter": "Prelude: A Ship Underway",
+        "stardate": 53068.4,
+    }]
+
+
 def test_projection_reads_v1_state_without_restoring_crew_identity_to_the_dto():
     api = API()
     api.states[11] = Store({
@@ -137,6 +263,13 @@ def test_projection_omits_hidden_objectives_and_private_state_roots():
     assert projection["mission"]["summary"] == "Complete the command handover, establish a working command rhythm, and bring the Breckenridge to the Asterion Reach."
     assert projection["ship"]["name"] == "U.S.S. Breckenridge"
     assert projection["ship"]["class_name"] == "Intrepid-class"
+    assert projection["ship"]["registry"] == "NCC-74656"
+    assert projection["campaign"]["summary"] == (
+        "The war is over, but peace in the Asterion Reach depends on who controls "
+        "Starfleet's voice, who receives relief, and whose evidence survives. The "
+        "newly refit U.S.S. Breckenridge enters that fracture with an incoming "
+        "executive officer and a command team still learning how to trust one another."
+    )
     assert projection["media"]["ship"]["variants"]["cohesion"] == "/api/extensions/directive/asset/assets/packages/breckenridge/images/ship/uss-breckenridge.cohesion.png"
     assert projection["media"]["ship"]["scene"]["layers"]["foreground"].endswith("uss-breckenridge.hero-ship.webp")
     assert projection["media"]["ship"]["scene"]["emissive"]["windows"].endswith("uss-breckenridge.hero-windows.png")

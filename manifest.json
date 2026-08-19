@@ -27,6 +27,36 @@
         "method": "GET",
         "path": "/projection",
         "description": "Read Directive's player-safe campaign projection."
+      },
+      {
+        "method": "POST",
+        "path": "/saves",
+        "description": "Register a full Sonder story clone as a saved game."
+      },
+      {
+        "method": "DELETE",
+        "path": "/saves",
+        "description": "Remove a saved game from the synchronized timeline registry."
+      },
+      {
+        "method": "POST",
+        "path": "/command-bearing/edge",
+        "description": "Spend one Command Bearing on the next credible favorable edge."
+      },
+      {
+        "method": "DELETE",
+        "path": "/command-bearing/edge",
+        "description": "Cancel and refund a pending Command Bearing edge."
+      },
+      {
+        "method": "POST",
+        "path": "/command-bearing/cohesion",
+        "description": "Reserve Command Bearing for one visible Cohesion assignment."
+      },
+      {
+        "method": "DELETE",
+        "path": "/command-bearing/cohesion",
+        "description": "Cancel and refund pending Cohesion relief."
       }
     ],
     "python": "extension.py",

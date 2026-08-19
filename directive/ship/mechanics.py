@@ -11,6 +11,7 @@ from typing import Any
 SHIP_STATE_KIND = "directive.shipState.v1"
 SHIP_CLAIM_TYPE = "shipMilestoneCompleted"
 SHIP_EFFECT_TYPE = "ship.milestoneCompleted"
+COHESION_RELIEF_EFFECT_TYPE = "ship.cohesionIssueResolved"
 
 
 class ShipReductionError(ValueError):
@@ -49,18 +50,20 @@ def _active_effects(effects: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]
     seen_ids: set[str] = set()
     seen_keys: set[str] = set()
     for effect in effects:
-        if effect.get("type") != SHIP_EFFECT_TYPE or effect.get("status") != "active":
+        effect_type = effect.get("type")
+        if effect_type not in {SHIP_EFFECT_TYPE, COHESION_RELIEF_EFFECT_TYPE} or effect.get("status") != "active":
             continue
         effect_id = str(effect.get("id") or "")
-        evidence_key = str(effect.get("evidenceKey") or "")
-        if not effect_id or not evidence_key:
-            raise ShipReductionError("ship milestone effect is missing stable custody")
-        if effect_id in seen_ids or evidence_key in seen_keys:
-            raise ShipReductionError("ship milestone effects contain duplicate custody")
+        custody_key = str(effect.get("evidenceKey") or effect.get("spendId") or "")
+        target = effect.get("targetId") if effect_type == SHIP_EFFECT_TYPE else effect.get("targetIssueId")
+        if not effect_id or not custody_key or not target:
+            raise ShipReductionError("ship effect is missing stable custody")
+        if effect_id in seen_ids or custody_key in seen_keys:
+            raise ShipReductionError("ship effects contain duplicate custody")
         seen_ids.add(effect_id)
-        seen_keys.add(evidence_key)
+        seen_keys.add(custody_key)
         accepted.append(_plain(effect))
-    return sorted(accepted, key=lambda item: (str(item["targetId"]), str(item["id"])))
+    return sorted(accepted, key=lambda item: (str(item.get("targetId") or item.get("targetIssueId")), str(item["id"])))
 
 
 def _mechanics_state(ship_dataset: Mapping[str, Any], effects: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
@@ -68,6 +71,8 @@ def _mechanics_state(ship_dataset: Mapping[str, Any], effects: Sequence[Mapping[
     active = _active_effects(effects)
     effects_by_milestone: dict[str, list[dict[str, Any]]] = {}
     for effect in active:
+        if effect.get("type") != SHIP_EFFECT_TYPE:
+            continue
         effects_by_milestone.setdefault(str(effect["targetId"]), []).append(effect)
     satisfied = set(effects_by_milestone)
     systems = []
@@ -167,18 +172,37 @@ def cohesion_band(total: int) -> dict[str, Any]:
     return {"id": "critical", "label": "Critical", "minimum": 0, "maximum": 39}
 
 
-def _cohesion_state(catalog: Mapping[str, Any], mechanics_state: Mapping[str, Any], branch_id: str) -> dict[str, Any]:
+def _cohesion_state(
+    catalog: Mapping[str, Any],
+    mechanics_state: Mapping[str, Any],
+    branch_id: str,
+    effects: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
     if catalog.get("kind") != "directive.cohesionCatalog.v1":
         raise ShipReductionError("cohesion catalog kind is invalid")
     systems = {item["id"]: item for item in mechanics_state["systems"]}
     issues = []
     completed = []
+    relief_by_issue = {
+        str(effect.get("targetIssueId")): effect
+        for effect in effects
+        if effect.get("type") == COHESION_RELIEF_EFFECT_TYPE
+    }
     next_segment = 0
     for contract in catalog.get("authoredIssues") or ():
         system = systems.get(contract.get("systemId"))
         if system is None:
             raise ShipReductionError(f"cohesion issue references unknown system {contract.get('systemId')}")
         amount = int(contract["level"]) * 5
+        relief = relief_by_issue.get(str(contract.get("id")))
+        if relief is not None:
+            completed.append({
+                "id": contract["id"],
+                "title": (contract.get("playerText") or {}).get("title"),
+                "cohesionRestored": int(relief.get("cohesionRestored") or amount),
+                "method": "command-bearing",
+            })
+            continue
         if system["state"]["id"] == contract.get("terminalStateId"):
             completed.append({
                 "id": contract["id"],
@@ -246,14 +270,36 @@ def derive_ship_state(
     *,
     branch_id: str,
 ) -> dict[str, Any]:
-    mechanics = _mechanics_state(ship_dataset, effects)
+    active_effects = _active_effects(effects)
+    mechanics = _mechanics_state(ship_dataset, active_effects)
     return {
         "kind": SHIP_STATE_KIND,
         "schema": 1,
         "branchId": str(branch_id),
-        "effects": _active_effects(effects),
+        "effects": active_effects,
         **mechanics,
-        "cohesion": _cohesion_state(cohesion_catalog, mechanics, branch_id),
+        "cohesion": _cohesion_state(cohesion_catalog, mechanics, branch_id, active_effects),
+    }
+
+
+def create_cohesion_relief_effect(
+    *, spend_id: str, target_issue_id: str, cohesion: int,
+    source_turn_id: str, source_hash: str,
+) -> dict[str, Any]:
+    if not str(spend_id).strip() or not str(target_issue_id).strip():
+        raise ShipReductionError("cohesion relief needs spend and target custody")
+    if not isinstance(cohesion, int) or isinstance(cohesion, bool) or not 1 <= cohesion <= 20:
+        raise ShipReductionError("cohesion relief must be an integer from 1 through 20")
+    return {
+        "id": f"command-bearing.{spend_id}",
+        "type": COHESION_RELIEF_EFFECT_TYPE,
+        "status": "active",
+        "spendId": str(spend_id),
+        "targetIssueId": str(target_issue_id),
+        "cohesionRestored": cohesion,
+        "sourceTurnId": str(source_turn_id),
+        "sourceHash": str(source_hash),
+        "method": "command-bearing",
     }
 
 

@@ -18,6 +18,22 @@ const PROJECTION = Object.freeze({
     location: { kind: "location.hero", alt: "Asterion Station", variants: { card: "/asterion.webp" } },
   },
   viewer: { id: "player", name: "Avery Quill", kind: "player" },
+  player: {
+    id: "player",
+    name: "Avery Quill",
+    pronouns_or_address: "they/them",
+    species: "Human",
+    age_band: "mid-career",
+    appearance: "Close-cropped dark hair and a crisp command uniform.",
+    service: {
+      organization: "starfleet",
+      department: "command",
+      rank_code: "commander",
+      rank_label: "Commander",
+    },
+    billet: "Executive Officer",
+    role: "Principal mission commander and coordinator of shipboard operations.",
+  },
   mission: {
     kind: "directive.missionPlayerProjection.v1",
     id: "mission.prelude-a-ship-underway",
@@ -175,7 +191,7 @@ const PROJECTION = Object.freeze({
   knows: ["Mara Whitaker commands the Breckenridge."],
 });
 
-test("Mission renders the literal active record, objectives, transition, outcome, and Command Bearing", () => {
+test("Mission renders the literal active record, objectives, transition, and outcome", () => {
   const fixture = installDomFixture();
   const view = renderMissionView(PROJECTION);
   fixture.document.body.append(view);
@@ -198,26 +214,27 @@ test("Mission renders the literal active record, objectives, transition, outcome
   assert.equal(view.querySelectorAll(".mission-desktop-detail .mission-objective-row").length, 2);
   assert.match(view.textContent, /ready-with-limitation/);
   assert.match(view.textContent, /The new command team begins its readiness review\./);
-  assert.match(view.textContent, /Command Bearing/);
-  assert.match(view.textContent, /2 of 3 available/);
-  assert.equal(view.querySelectorAll(".directive-v1-command-bearing-pips span").length, 3);
-  assert.equal(view.querySelectorAll(".directive-v1-command-bearing-pips .is-filled").length, 2);
+  assert.equal(view.querySelector(".directive-command-bearing-strip"), null);
+  const mobileTrigger = view.querySelector(".mission-mobile-trigger");
+  const mobilePanel = view.querySelector(`#${mobileTrigger?.getAttribute("aria-controls")}`);
+  assert.equal(mobileTrigger?.getAttribute("aria-expanded"), "true");
+  assert.equal(mobilePanel?.hidden, false);
+  mobileTrigger?.click();
+  assert.equal(mobileTrigger?.getAttribute("aria-expanded"), "false");
+  assert.equal(mobilePanel?.hidden, true);
   fixture.window.close();
 });
 
-test("Mission renders an explicit unavailable state when Command Bearing is absent", () => {
+test("Mission does not duplicate People's Command Bearing strip", () => {
   const fixture = installDomFixture();
   const view = renderMissionView({ ...PROJECTION, command_bearing: undefined });
   fixture.document.body.append(view);
 
-  const bearing = view.querySelector(".directive-v1-command-bearing");
-  assert.match(bearing?.textContent || "", /Command Bearing unavailable\./);
-  assert.doesNotMatch(bearing?.textContent || "", /0 of 0|reserve earned/i);
-  assert.equal(bearing?.querySelectorAll(".directive-v1-command-bearing-pips span").length, 0);
+  assert.equal(view.querySelector(".directive-command-bearing-strip"), null);
   fixture.window.close();
 });
 
-test("People orders recognized Directive crew before observed contacts and selects literal detail", () => {
+test("People reproduces Directive's player-first Ships Company journal and literal detail", () => {
   const fixture = installDomFixture();
   const state = {};
   const view = renderPeopleView(PROJECTION, state);
@@ -225,15 +242,31 @@ test("People orders recognized Directive crew before observed contacts and selec
 
   assert.match(view.className, /\bdirective-expanded-people\b/);
   assert.equal(view.dataset.directiveScrollOwner, "true");
-  assert.ok(view.querySelector(".people-journal > .people-roster"));
-  assert.ok(view.querySelector(".people-journal > .people-detail"));
-  const controls = [...view.querySelectorAll("[data-person-id]")];
-  assert.equal(view.querySelectorAll(".people-row > .people-row-copy").length, 3);
+  assert.ok(view.querySelector(".people-journal-host > .people-desktop-journal"));
+  assert.ok(view.querySelector(".people-desktop-journal > .people-roster"));
+  assert.ok(view.querySelector(".people-desktop-journal > .people-detail"));
+  assert.ok(view.querySelector(".mobile-crew-accordion"));
+  assert.equal(view.querySelector(".people-collection-toolbar strong")?.textContent, "Personnel records");
+  assert.equal(view.querySelector(".people-add-category")?.textContent, "+ Category");
+  assert.equal(view.querySelector('[data-category-id="ships-company"] .collection-category-copy strong')?.textContent, "Ship's Company");
+  assert.equal(view.querySelector('[data-category-id="ships-company"] .collection-category-copy small')?.textContent, "3 people");
+  const controls = [...view.querySelectorAll('.people-desktop-journal [data-category-id="ships-company"] button.people-row')];
+  assert.equal(view.querySelectorAll('.people-desktop-journal [data-category-id="ships-company"] .people-row > .people-row-copy').length, 3);
   assert.deepEqual(controls.map((control) => control.textContent.trim()), [
-    "Mara WhitakerCaptain · Commanding Officer",
-    "Priya NayarLieutenant Commander · Chief Science Officer",
-    "an unfamiliar ensignObserved contact",
+    "AQAvery QuillExecutive Officer",
+    "Mara WhitakerCommanding Officer",
+    "PNPriya NayarChief Science Officer",
   ]);
+  assert.equal(state.selectedPersonId, "player");
+  const portraitControls = [...view.querySelectorAll(".directive-crew-player-portrait-control")];
+  assert.deepEqual(portraitControls.map((control) => control.getAttribute("aria-label")), [
+    "Add player image",
+    "No player image to remove",
+    "Add player image",
+    "No player image to remove",
+  ]);
+  assert.equal(portraitControls.every((control) => control.disabled), true);
+  controls[1].click();
   assert.equal(state.selectedPersonId, "11");
   assert.match(view.querySelector(".people-detail")?.textContent || "", /Personnel record/);
   assert.match(view.querySelector(".people-detail")?.textContent || "", /Science operations, diplomacy, executive command/);
@@ -241,16 +274,107 @@ test("People orders recognized Directive crew before observed contacts and selec
   assert.match(view.querySelector(".people-detail")?.textContent || "", /Kingston, Ontario, Earth/);
   assert.equal(occurrences(view.querySelector(".people-detail")?.textContent || "", "Captain Whitaker commands the Breckenridge."), 1);
 
-  controls[2].click();
+  assert.equal(view.querySelectorAll('.people-desktop-journal [aria-label^="Reorder "]').length, 6);
+  assert.equal(view.querySelectorAll(".people-desktop-journal .people-roster .people-pip").length, 10);
+  const contacts = view.querySelector('[data-category-id="contacts"]');
+  assert.equal(contacts?.querySelector(".collection-category-copy small")?.textContent, "1 person");
+
+  const stranger = view.querySelector('.people-desktop-journal button.people-row[data-person-id="body:unknown-1"]');
+  stranger.click();
   assert.equal(state.selectedPersonId, "body:unknown-1");
   assert.match(view.querySelector(".people-detail")?.textContent || "", /No additional public details are available\./);
   assert.doesNotMatch(view.textContent, /secret|psychology|personality|private history/i);
   assert.doesNotMatch(view.querySelector(".people-detail")?.textContent || "", /Starfleet|assignment|duty/i);
 
   const rerendered = renderPeopleView(PROJECTION, state);
-  assert.equal(rerendered.querySelector('[data-person-id="body:unknown-1"]')?.getAttribute("aria-pressed"), "true");
+  assert.equal(rerendered.querySelector('.people-desktop-journal button.people-row[data-person-id="body:unknown-1"]')?.getAttribute("aria-pressed"), "true");
   assert.match(rerendered.querySelector(".people-detail")?.textContent || "", /an unfamiliar ensign/);
   assert.match(rerendered.querySelector(".people-detail")?.textContent || "", /No additional public details are available\./);
+  fixture.window.close();
+});
+
+test("People category, mobile disclosure, and Command Bearing controls are functional", () => {
+  const fixture = installDomFixture();
+  const state = {};
+  let reserved = 0;
+  const view = renderPeopleView(PROJECTION, state, { reserveCommandBearingEdge: () => { reserved += 1; } });
+  fixture.document.body.append(view);
+
+  const bearing = view.querySelector(".directive-command-bearing-strip");
+  assert.equal(bearing?.querySelectorAll(".directive-command-bearing-pips span").length, 3);
+  bearing?.querySelector(".people-command-primary")?.click();
+  assert.equal(reserved, 1);
+
+  const disclosure = view.querySelector('.people-desktop-journal [data-category-id="contacts"] .collection-disclosure');
+  disclosure?.click();
+  assert.equal(view.querySelector('.people-desktop-journal [data-category-id="contacts"] .collection-person-list'), null);
+
+  view.querySelector(".people-desktop-journal .people-add-category")?.click();
+  const input = view.querySelector('.people-desktop-journal .collection-category-input');
+  assert.ok(input);
+  input.value = "Diplomatic contacts";
+  input.dispatchEvent(new fixture.window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+  assert.match(view.querySelector(".people-desktop-journal")?.textContent || "", /Diplomatic contacts/i);
+
+  const toggles = [...view.querySelectorAll(".mobile-accordion-toggle")];
+  toggles[0]?.click();
+  toggles[1]?.click();
+  assert.equal(view.querySelectorAll(".mobile-accordion-item.is-open").length, 1);
+  assert.equal(toggles[0]?.getAttribute("aria-expanded"), "false");
+  assert.equal(toggles[1]?.getAttribute("aria-expanded"), "true");
+  fixture.window.close();
+});
+
+test("People pointer reordering persists within the Directive campaign story scope", () => {
+  const fixture = installDomFixture();
+  const first = renderPeopleView(PROJECTION, {});
+  fixture.document.body.append(first);
+  const rows = [...first.querySelectorAll('.people-desktop-journal [data-category-id="ships-company"] .collection-person-row')];
+  const movingId = rows[0].dataset.personId;
+  const targetId = rows[1].dataset.personId;
+  const handle = rows[0].querySelector(".collection-person-drag-handle");
+  fixture.document.elementFromPoint = () => rows[1];
+  handle.dispatchEvent(new fixture.window.PointerEvent("pointerdown", {
+    bubbles: true, pointerId: 1, pointerType: "mouse", button: 0, clientX: 4, clientY: 4,
+  }));
+  fixture.document.dispatchEvent(new fixture.window.PointerEvent("pointermove", {
+    bubbles: true, pointerId: 1, pointerType: "mouse", clientX: 4, clientY: 20,
+  }));
+  fixture.document.dispatchEvent(new fixture.window.PointerEvent("pointerup", {
+    bubbles: true, pointerId: 1, pointerType: "mouse", clientX: 4, clientY: 20,
+  }));
+
+  const restored = renderPeopleView(PROJECTION, {});
+  first.replaceWith(restored);
+  const restoredIds = [...restored.querySelectorAll('.people-desktop-journal [data-category-id="ships-company"] .collection-person-row')]
+    .map((row) => row.dataset.personId);
+  assert.equal(restoredIds.indexOf(movingId), restoredIds.indexOf(targetId) + 1);
+  fixture.window.close();
+});
+
+test("People mobile category and person reordering uses the visible accordion and restores handle focus", async () => {
+  const fixture = installDomFixture();
+  const view = renderPeopleView(PROJECTION, {});
+  fixture.document.body.append(view);
+  const mobile = view.querySelector(".mobile-crew-accordion");
+  const categories = [...mobile.querySelectorAll(":scope > .collection-category")];
+  const categoryHandle = categories[0].querySelector(":scope > .collection-category-head > .collection-drag-handle");
+  fixture.document.elementFromPoint = () => categories[1];
+  categoryHandle.dispatchEvent(new fixture.window.PointerEvent("pointerdown", {
+    bubbles: true, pointerId: 7, pointerType: "touch", button: 0, clientX: 4, clientY: 4,
+  }));
+  fixture.document.dispatchEvent(new fixture.window.PointerEvent("pointerup", {
+    bubbles: true, pointerId: 7, pointerType: "touch", clientX: 4, clientY: 20,
+  }));
+  assert.equal(view.querySelector(".mobile-crew-accordion > .collection-category")?.dataset.categoryId, "contacts");
+
+  const personHandle = view.querySelector('.mobile-crew-accordion [data-category-id="ships-company"] .collection-person-drag-handle');
+  personHandle.focus();
+  personHandle.dispatchEvent(new fixture.window.KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+  await new Promise((resolve) => fixture.window.requestAnimationFrame(resolve));
+  const active = fixture.document.activeElement;
+  assert.equal(active?.getAttribute("aria-label"), "Reorder Avery Quill");
+  assert.ok(active?.closest(".mobile-crew-accordion"));
   fixture.window.close();
 });
 
@@ -279,24 +403,17 @@ test("Ship renders literal vessel readiness, systems, work orders, and cohesion 
   assert.match(view.textContent, /Medical support/);
   assert.match(view.textContent, /Sensor limitation/);
 
-  const priority = view.querySelector('details[data-cohesion-issue-id="cohesion.sensor-calibration"]');
+  const priority = view.querySelector(".ship-task-detail > .ship-task-detail-content");
   assert.ok(priority);
-  assert.match(priority.className, /\bdirective-cohesion-disclosure\b/);
-  assert.doesNotMatch(priority.className, /\bship-task-detail\b/);
-  assert.equal(priority.hidden, false);
-  assert.equal(priority.open, true);
+  assert.match(priority.className, /\bship-task-detail-content\b/);
   assert.match(priority.textContent, /Restore sensor confidence/);
   assert.match(priority.textContent, /Objective/);
   assert.match(priority.textContent, /Complete the calibration and verification sweep\./);
-  assert.match(priority.textContent, /Why It Matters/);
+  assert.match(priority.textContent, /Command Impact/);
   assert.match(priority.textContent, /Reliable readings improve bridge coordination\./);
-  assert.match(priority.textContent, /Operational Effect/);
+  assert.match(priority.textContent, /Operational Risk/);
   assert.match(priority.textContent, /Uncertain contacts may consume response time\./);
-  assert.match(priority.textContent, /Current phase/);
-  assert.match(priority.textContent, /Calibration · available/);
-  assert.match(priority.textContent, /Assignment phases/);
-  assert.match(priority.textContent, /Verification · available/);
-  assert.match(priority.textContent, /Verify the calibration result\./);
+  assert.match(priority.textContent, /Next: Calibration/);
   assert.match(priority.textContent, /Review the sensor work orders\./);
   assert.match(view.textContent, /1 additional assignment queued/);
   assert.match(view.textContent, /Stabilize power transfer/);
@@ -314,7 +431,52 @@ test("Ship renders literal vessel readiness, systems, work orders, and cohesion 
   fixture.window.close();
 });
 
-test("Ship omits phase and computer-help disclosures when those literal fields are absent", () => {
+test("Ship offers source-equivalent Command Bearing relief for the selected visible issue", async () => {
+  const fixture = installDomFixture();
+  const calls = [];
+  let refreshed = 0;
+  const data = structuredClone(PROJECTION);
+  data.command_bearing = { balance: 1, capacity: 3, pending_cohesion_relief: null };
+  const view = renderShipView(data, {
+    reserveCohesionRelief: async ({ issueId }) => {
+      calls.push(issueId);
+      return { applied: true };
+    },
+    refresh: async () => { refreshed += 1; },
+  });
+  fixture.document.body.append(view);
+
+  const button = view.querySelector(".ship-command-relief-button");
+  assert.match(button?.textContent || "", /Spend 1 Command Bearing/);
+  button?.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(calls, [data.ship.cohesion.issues[0].id]);
+  assert.equal(refreshed, 1);
+  assert.equal(button?.textContent, "Command Bearing relief reserved");
+  fixture.window.close();
+});
+
+test("Ship Command Bearing actions recover from host errors with an accessible message", async () => {
+  const fixture = installDomFixture();
+  const data = structuredClone(PROJECTION);
+  data.command_bearing = { balance: 1, capacity: 3, pending_cohesion_relief: null };
+  const view = renderShipView(data, {
+    reserveCohesionRelief: async () => { throw new Error("Cohesion service unavailable."); },
+  });
+  fixture.document.body.append(view);
+
+  const button = view.querySelector(".ship-command-relief-button");
+  button.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const error = view.querySelector(".ship-command-relief-error");
+  assert.equal(button.disabled, false);
+  assert.equal(error?.hidden, false);
+  assert.equal(error?.getAttribute("role"), "alert");
+  assert.match(error?.textContent || "", /Cohesion service unavailable/);
+  fixture.window.close();
+});
+
+test("Ship degrades absent literal task fields without inventing phase detail", () => {
   const fixture = installDomFixture();
   const data = structuredClone(PROJECTION);
   delete data.ship.cohesion.issues[0].current_phase;
@@ -323,8 +485,9 @@ test("Ship omits phase and computer-help disclosures when those literal fields a
   const view = renderShipView(data);
   fixture.document.body.append(view);
 
-  const priority = view.querySelector('details[data-cohesion-issue-id="cohesion.sensor-calibration"]');
-  assert.doesNotMatch(priority?.textContent || "", /Current phase|Assignment phases|Computer help/i);
+  const priority = view.querySelector(".ship-task-detail > .ship-task-detail-content");
+  assert.match(priority?.textContent || "", /This assignment is ready for resolution/);
+  assert.doesNotMatch(priority?.textContent || "", /Calibration · available|Verification · available|Review the sensor work orders/i);
   fixture.window.close();
 });
 

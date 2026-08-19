@@ -5,6 +5,25 @@ import { Window } from "happy-dom";
 import * as directiveUi from "../../ui/index.js";
 import { createDirectiveView } from "../../ui/app.js";
 
+test("Directive registers a textless launcher for the exact ship SVG mask", () => {
+  const window = new Window();
+  globalThis.document = window.document;
+  let registered = null;
+  const sonder = {
+    registerView() {},
+    registerTopBarButton(config) { registered = config; },
+    registerSettingsSection() {},
+    registerStepRenderer() {},
+  };
+
+  directiveUi.register(sonder);
+
+  assert.equal(registered?.id, "directive-launch");
+  assert.equal(registered?.icon, " ");
+  assert.equal(registered?.title, "Directive");
+  window.close();
+});
+
 test("active-story focus enters Directive before a delayed projection resolves", async () => {
   const window = new Window();
   globalThis.document = window.document;

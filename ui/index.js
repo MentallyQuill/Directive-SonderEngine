@@ -32,7 +32,7 @@ export function register(sonder) {
   sonder.registerView(createDirectiveView(sonder, { onClose: () => focus.close() }));
   sonder.registerTopBarButton({
     id: "directive-launch",
-    icon: "⌁",
+    icon: " ",
     title: "Directive",
     onClick: () => focus.open()
   });

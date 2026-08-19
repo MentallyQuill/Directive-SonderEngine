@@ -5314,6 +5314,7 @@ html.directive-reorder-grabbing * { cursor: grabbing !important; }
 .directive-expanded-shell .settings-section-head > span { color: var(--directive-expanded-salmon); font: 800 9px/1.2 "Roboto Condensed", "Arial Narrow", sans-serif; text-transform: uppercase; }
 .directive-expanded-shell .settings-section-head h2 { margin: 3px 0 0; color: var(--directive-expanded-text); font: 800 22px/1.08 "Roboto Condensed", "Arial Narrow", sans-serif; }
 .directive-expanded-shell .settings-section-head p { margin: 6px 0 0; color: var(--directive-expanded-muted); font-size: 11px; line-height: 1.4; }
+.directive-expanded-shell .settings-section > p { margin: 11px 0 0; color: var(--directive-expanded-muted); font-size: 12px; line-height: 1.45; }
 .directive-expanded-shell .settings-provider-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; margin-top: 12px; }
 .directive-expanded-shell .settings-provider-card { min-width: 0; padding: 12px; background: var(--directive-expanded-high); border-top: 4px solid var(--directive-expanded-salmon); border-radius: 4px; }
 .directive-expanded-shell .settings-provider-card > header { display: flex; justify-content: space-between; gap: 10px; }
@@ -5882,7 +5883,33 @@ html.directive-reorder-grabbing * { cursor: grabbing !important; }
   gap: 8px;
 }
 
-/* Sonder facade bridge: the host owns the viewport; Directive owns shell scrolling. */
+/* Sonder facade bridge: the host owns the viewport; Directive owns its source shell. */
+@font-face {
+  font-family: "Directive Font Awesome 6 Free";
+  font-style: normal;
+  font-weight: 900;
+  font-display: block;
+  src: url("/api/extensions/directive/asset/assets/fonts/fa-solid-900.woff2") format("woff2");
+}
+
+.directive-app .fa-solid {
+  display: inline-block;
+  font-family: "Directive Font Awesome 6 Free";
+  font-style: normal;
+  font-variant: normal;
+  font-weight: 900;
+  line-height: 1;
+  text-rendering: auto;
+}
+
+.directive-app .fa-arrow-right::before { content: "\f061"; }
+.directive-app .fa-bookmark::before { content: "\f02e"; }
+.directive-app .fa-clock-rotate-left::before { content: "\f1da"; }
+
+/* Sonder themes style every header element. Directive headers are panels, not
+   host chrome, so retain the source element background. */
+.directive-app header { background: transparent; }
+
 .directive-app .directive-vector-glyph[data-glyph="route-campaign"] { --directive-glyph-url: url("/api/extensions/directive/asset/assets/icons/directive-vector-glyphs-v1/icons/route-campaign.svg"); }
 .directive-app .directive-vector-glyph[data-glyph="route-mission"] { --directive-glyph-url: url("/api/extensions/directive/asset/assets/icons/directive-vector-glyphs-v1/icons/route-mission.svg"); }
 .directive-app .directive-vector-glyph[data-glyph="route-crew"] { --directive-glyph-url: url("/api/extensions/directive/asset/assets/icons/directive-vector-glyphs-v1/icons/route-crew.svg"); }
@@ -5894,46 +5921,37 @@ html.directive-reorder-grabbing * { cursor: grabbing !important; }
 .directive-app .ship-task-category-icon[data-icon="systems"] { --ship-task-icon: url("/api/extensions/directive/asset/assets/icons/cohesion-task-categories/systems.svg"); }
 .directive-app .ship-task-category-icon[data-icon="life"] { --ship-task-icon: url("/api/extensions/directive/asset/assets/icons/cohesion-task-categories/life.svg"); }
 
-.directive-app.directive-runtime-panel.directive-expanded-shell { --directive-focus: #ffe58f; }
-
-.directive-expanded-shell .directive-campaign-command-bar[hidden] { display: none !important; }
-
-/* The source Campaign panel mounts its dashboard directly. Sonder keeps a
-   mode-panel adapter, so make that adapter transparent to the source flex/grid
-   sizing and keep simple fallback media out of intrinsic track sizing. */
-.directive-app .directive-campaign-workspace {
-  flex-direction: column;
-  width: 100%;
-  min-height: 0;
+.directive-app .directive-route-control-label { text-transform: uppercase; }
+.directive-app .collection-person-drag-handle::before {
+  -webkit-mask-image: url("/api/extensions/directive/asset/assets/icons/handle-person.svg");
+  mask-image: url("/api/extensions/directive/asset/assets/icons/handle-person.svg");
+}
+.directive-app .directive-crew-player-portrait-upload-icon {
+  -webkit-mask-image: url("/api/extensions/directive/asset/assets/icons/upload-pc-image.svg");
+  mask-image: url("/api/extensions/directive/asset/assets/icons/upload-pc-image.svg");
+}
+.directive-app .directive-crew-player-portrait-remove-icon {
+  -webkit-mask-image: url("/api/extensions/directive/asset/assets/icons/remove-pc-image.svg");
+  mask-image: url("/api/extensions/directive/asset/assets/icons/remove-pc-image.svg");
 }
 
-.directive-app .directive-campaign-mode-panel {
-  display: flex;
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
+/* Sonder's route renderer returns one semantic wrapper around the source Ship
+   workspace. Keep that wrapper in the accessibility tree without adding the
+   retired two-row Ship layout's margin and grid geometry. */
+.directive-app .directive-expanded-ship.ship-route { display: contents; }
+
+/* Sonder's top-bar registration is text-only. Keep its stable extension
+   button and render Directive's exact ship glyph without changing the host. */
+[data-ext-button="directive-launch"] {
+  font-size: 0;
 }
 
-.directive-app .campaign-dashboard > .campaign-dashboard-hero {
-  position: relative;
-}
-
-.directive-app .campaign-dashboard-hero > .directive-media-frame {
-  position: absolute;
-  inset: 0;
-}
-
-.directive-app .directive-close-action,
-.directive-app .directive-route-control {
-  min-width: 44px;
-  min-height: 44px;
-}
-
-.directive-app button,
-.directive-app input,
-.directive-app select,
-.directive-app textarea,
-.directive-app summary {
-  min-height: 44px !important;
+[data-ext-button="directive-launch"]::before {
+  display: block;
+  width: 24px;
+  height: 24px;
+  background: currentColor;
+  content: "";
+  -webkit-mask: url("/api/extensions/directive/asset/assets/icons/directive-vector-glyphs-v1/icons/route-ship.svg") center / contain no-repeat;
+  mask: url("/api/extensions/directive/asset/assets/icons/directive-vector-glyphs-v1/icons/route-ship.svg") center / contain no-repeat;
 }

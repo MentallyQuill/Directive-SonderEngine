@@ -9,6 +9,7 @@ from typing import Any
 
 from ..campaign.source import load_ashes_source
 from ..command.bearing import award
+from ..command.service import commit_pending_edge
 from ..mission.journey import advance_journey
 from ..mission.reducer import MissionReductionError, reduce_evidence
 from ..ship.mechanics import (
@@ -155,13 +156,27 @@ def interpret_settlement(view, api, role: str) -> dict[str, Any]:
 
 def commit_settlement(view, api) -> dict[str, Any]:
     proposal = view.step_content("ext:directive:settlement") or {}
-    if proposal.get("kind") != PROPOSAL_KIND:
-        return {"applied": 0, "reason": "no validated proposal"}
-    claims = proposal.get("claims") or []
-    if not isinstance(claims, list) or not claims:
-        return {"applied": 0, "reason": "no accepted claims"}
     expected_turn = str(view.turn_id)
     expected_hash = _hash(view.step_content("director_resolve") or {})
+    if proposal.get("kind") != PROPOSAL_KIND:
+        frame = view.frame_state.get() or {}
+        next_frame, spent = commit_pending_edge(
+            api, view.chat_id, frame,
+            turn_id=expected_turn, source_hash=expected_hash,
+        )
+        if next_frame != frame:
+            view.frame_state.set(next_frame)
+        return {"applied": 0, "reason": "no validated proposal", "command_bearing_spent": spent}
+    claims = proposal.get("claims") or []
+    if not isinstance(claims, list) or not claims:
+        frame = view.frame_state.get() or {}
+        next_frame, spent = commit_pending_edge(
+            api, view.chat_id, frame,
+            turn_id=expected_turn, source_hash=expected_hash,
+        )
+        if next_frame != frame:
+            view.frame_state.set(next_frame)
+        return {"applied": 0, "reason": "no accepted claims", "command_bearing_spent": spent}
     if any(
         not isinstance(claim, Mapping)
         or claim.get("sourceTurnId") != expected_turn
@@ -227,12 +242,17 @@ def commit_settlement(view, api) -> dict[str, Any]:
         opening_stardate=float(campaign.get("openingStardate") or 53068.4),
         stardate_per_day=float(layout.get("stardatePerDay") or 1),
     )
+    next_frame, bearing_spent = commit_pending_edge(
+        api, view.chat_id, next_frame,
+        turn_id=expected_turn, source_hash=expected_hash,
+    )
     view.frame_state.set(next_frame)
     return {
         "applied": len(reduction.effects) + len(ship_reduction.applied),
         "mission_revision": reduction.state["revision"],
         "transition": reduction.transition_packet,
         "advanced_to": journey.current["definitionId"] if journey.advanced else None,
+        "command_bearing_spent": bearing_spent,
     }
 
 

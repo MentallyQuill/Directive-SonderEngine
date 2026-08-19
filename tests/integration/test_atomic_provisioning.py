@@ -189,6 +189,8 @@ def test_current_sonder_loads_and_provisions_the_complete_story(live_sonder):
     assert len(view["cast"]) == 7
     assert api.provenance(chat_id)["package"] == PACKAGE_ID
     assert api.provenance(chat_id)["version"] == PACKAGE_VERSION
+
+
     assert api.state(chat_id).get()["kind"] == "directive.campaignConfig.v1"
     assert api.frame_state(chat_id).get()["kind"] == "directive.frameState.v1"
     assert api.documents(chat_id).get("package/campaign")["manifest"]["id"] == PACKAGE_ID
@@ -221,6 +223,49 @@ def test_current_sonder_loads_and_provisions_the_complete_story(live_sonder):
     assert "directive-crew-" not in public_projection
     assert "narrationGuide" not in repr(projection)
     assert "psychology" not in repr(projection)
+
+
+def test_saved_game_delete_identifier_survives_the_real_sonder_dispatcher(live_sonder):
+    """DELETE bodies are not part of Sonder's extension route contract."""
+    extension_runtime, api, _db, _path = live_sonder
+    current = extension_runtime.dispatch_route(
+        "directive", "POST", "/start", body=player_payload()
+    )["chat_id"]
+    import app as app_module
+
+    saved = app_module.chat_import({"data": app_module.chat_export(current)})["id"]
+    record = {
+        "id": f"save-{saved}",
+        "chat_id": saved,
+        "name": "Before the briefing",
+        "createdAt": "2026-08-18T12:34:56.000Z",
+    }
+    extension_runtime.dispatch_route(
+        "directive", "POST", "/saves",
+        query={"chat_id": str(current)}, body=record,
+    )
+
+    from fastapi.testclient import TestClient
+    import guest_access as guest
+
+    guest.reset_host_account()
+    try:
+        with TestClient(app_module.app) as client:
+            setup = client.post(
+                "/api/auth/setup",
+                json={"username": "host", "password": "pw12345"},
+            )
+            assert setup.status_code == 200, setup.text
+            response = client.delete(
+                "/api/extensions/directive/x/saves",
+                params={"chat_id": current, "saved_game_id": record["id"]},
+            )
+    finally:
+        guest.reset_host_account()
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {"ok": True, "saved_games": []}
+    assert api.documents(current).get("timeline/saves")["saved_games"] == []
 
 
 def test_current_sonder_rejects_invalid_turn_zero_data_without_a_database_write(

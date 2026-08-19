@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from ..campaign.source import load_ashes_source
+from ..campaign.timeline import project_saved_games
 from ..command.bearing import project_bearing
 from ..ship.mechanics import derive_ship_state
 from ..state.contracts import CrewProfile, StateContractError, migrate_crew_profile
@@ -147,12 +148,19 @@ def _mission_projection(state: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _people(api, chat_id: int, player_view: Mapping[str, Any], media: Mapping[str, Any]) -> list[dict[str, Any]]:
-    output = []
-    for raw in player_view.get("people") or ():
+def _people(api, chat_id: int, player_view: Mapping[str, Any], media: Mapping[str, Any], source) -> list[dict[str, Any]]:
+    authored_officers = [
+        officer for officer in source.crew.get("officers") or ()
+        if isinstance(officer, Mapping)
+    ]
+    authored_by_id = {str(officer.get("id") or ""): officer for officer in authored_officers}
+    authored_order = {str(officer.get("id") or ""): index for index, officer in enumerate(authored_officers)}
+    ordered_output = []
+    for source_index, raw in enumerate(player_view.get("people") or ()):
         if not isinstance(raw, Mapping):
             continue
         person = copy.deepcopy(dict(raw))
+        order = len(authored_order) + source_index
         person_id = str(person.get("id") or "")
         if person.get("kind") == "character" and person.get("identity_status") == "recognized" and person_id.isdigit():
             domain = api.char_state(chat_id, int(person_id)).get() or {}
@@ -163,11 +171,56 @@ def _people(api, chat_id: int, player_view: Mapping[str, Any], media: Mapping[st
             if profile is not None:
                 allowed = profile.to_public_dict()
                 actor_ref = profile.binding.actor_ref
+                order = authored_order.get(actor_ref, order)
+                authored = authored_by_id.get(actor_ref) or {}
+                species = authored.get("species")
+                if isinstance(species, str) and species.strip():
+                    allowed["species"] = species.strip()
+                service = authored.get("service") or {}
+                if isinstance(service, Mapping):
+                    allowed["service"] = {
+                        str(key): copy.deepcopy(value)
+                        for key, value in service.items()
+                        if key in {"organization", "department", "rankCode", "rankLabel"}
+                    }
                 if actor_ref in media:
                     allowed["media"] = copy.deepcopy(media[actor_ref])
                 person["directive"] = allowed
-        output.append(person)
-    return output
+        ordered_output.append((order, source_index, person))
+    ordered_output.sort(key=lambda item: (item[0], item[1]))
+    return [person for _order, _source_index, person in ordered_output]
+
+
+def _player_profile(api, chat_id: int, player_view: Mapping[str, Any], source) -> dict[str, Any]:
+    """Project the player using only visibly public, source-backed fields."""
+    profile: Mapping[str, Any] = {}
+    documents = getattr(api, "documents", None)
+    if callable(documents):
+        stored = documents(chat_id).get("player/profile")
+        if isinstance(stored, Mapping):
+            profile = stored
+
+    viewer = player_view.get("viewer") or {}
+    locked_role = (source.campaign.get("characterCreation") or {}).get("lockedRole") or {}
+    projected = {"id": "player"}
+    name = profile.get("name") or viewer.get("name")
+    if isinstance(name, str) and name.strip():
+        projected["name"] = name.strip()
+    for field in ("pronouns_or_address", "species", "age_band", "appearance"):
+        value = profile.get(field)
+        if isinstance(value, str) and value.strip():
+            projected[field] = value.strip()
+    projected.update({
+        "service": {
+            "organization": "starfleet",
+            "department": "command",
+            "rank_code": "commander",
+            "rank_label": str(locked_role.get("rank") or "Commander"),
+        },
+        "billet": str(locked_role.get("billet") or "Executive Officer"),
+        "role": str(locked_role.get("commandAuthority") or ""),
+    })
+    return projected
 
 
 def _ship_projection(source, frame_ship: Mapping[str, Any], branch_id: str) -> dict[str, Any]:
@@ -182,6 +235,7 @@ def _ship_projection(source, frame_ship: Mapping[str, Any], branch_id: str) -> d
         "kind": "directive.shipPlayerProjection.v1",
         "name": identity.get("name"),
         "class_name": identity.get("class"),
+        "registry": identity.get("registry"),
         "systems": [{
             "id": item["id"],
             "label": item.get("label"),
@@ -253,6 +307,7 @@ def create_player_projection(api, chat_id: int) -> dict[str, Any]:
         "campaign": {
             "id": "ashes-of-peace",
             "title": campaign.get("title"),
+            "summary": campaign.get("highConcept"),
             "simulation_mode": (campaign_state.get("settings") or {}).get("simulation_mode"),
         },
         "media": {
@@ -260,6 +315,7 @@ def create_player_projection(api, chat_id: int) -> dict[str, Any]:
             "location": copy.deepcopy(media.get("asterion-station")),
         },
         "viewer": copy.deepcopy(player.get("viewer") or {}),
+        "player": _player_profile(api, int(chat_id), player, source),
         "mission": _mission_projection(mission),
         "journey": {
             "completed_count": len(settlement.get("mission_history") or ()),
@@ -277,7 +333,8 @@ def create_player_projection(api, chat_id: int) -> dict[str, Any]:
         ),
         "command_bearing": project_bearing((frame.get("command") or {}).get("bearing")),
         "time": project_time((frame.get("time") or {}).get("ledger")),
-        "people": _people(api, int(chat_id), player, media),
+        "people": _people(api, int(chat_id), player, media, source),
+        "saved_games": project_saved_games(api, int(chat_id)),
     }
     for field in ("turn", "location", "perception", "knows"):
         if field in player:
