@@ -49,6 +49,16 @@ test("Directive shell preserves the five-route LCARS navigation and keyboard con
   assert.equal(shell.querySelector(".directive-route-body")?.dataset.routeView, "mission");
   assert.equal(shell.querySelector(".directive-route-bar")?.getAttribute("role"), "tablist");
 
+  const close = shell.querySelector('[data-shell-action="close"]');
+  close.focus();
+  const reverseWrap = dispatchKeyboard(fixture.window, close, "Tab", { shiftKey: true });
+  assert.equal(reverseWrap.defaultPrevented, true);
+  assert.equal(fixture.document.activeElement, controls[1], "Shift+Tab from the first modal control wraps to the last");
+  controls[1].focus();
+  const forwardWrap = dispatchKeyboard(fixture.window, controls[1], "Tab");
+  assert.equal(forwardWrap.defaultPrevented, true);
+  assert.equal(fixture.document.activeElement, close, "Tab from the last modal control wraps to the first");
+
   const bubbledKeys = [];
   shell.addEventListener("keydown", (event) => bubbledKeys.push(event.key));
   const arrowRight = dispatchKeyboard(fixture.window, controls[1], "ArrowRight");
@@ -101,9 +111,10 @@ test("Directive shell preserves the five-route LCARS navigation and keyboard con
   fixture.window.close();
 });
 
-function dispatchKeyboard(window, target, key) {
+function dispatchKeyboard(window, target, key, options = {}) {
   const event = new window.KeyboardEvent("keydown", {
     key,
+    shiftKey: options.shiftKey === true,
     bubbles: true,
     cancelable: true,
   });

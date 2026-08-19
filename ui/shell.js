@@ -87,12 +87,38 @@ export function createDirectiveShell({
   workspace.append(topbar, heading, body, routeBar);
   shell.append(rail, workspace);
   shell.addEventListener("keydown", (event) => {
-    if (event?.key !== "Escape") return;
-    event.preventDefault?.();
-    onClose?.(event);
+    if (event?.key === "Tab") {
+      containModalFocus(shell, event);
+      return;
+    }
+    if (event?.key === "Escape") {
+      event.preventDefault?.();
+      onClose?.(event);
+    }
   });
   setShellRoute(shell, initialRoute.id);
   return shell;
+}
+
+function containModalFocus(shell, event) {
+  const focusable = [...shell.querySelectorAll("button, [href], input, select, textarea, summary, [tabindex]")]
+    .filter((node) => !node.disabled && !node.hidden && node.tabIndex >= 0);
+  if (!focusable.length) {
+    event.preventDefault?.();
+    shell.tabIndex = -1;
+    shell.focus?.({ preventScroll: true });
+    return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const active = shell.ownerDocument?.activeElement;
+  if (event.shiftKey && (active === first || !shell.contains(active))) {
+    event.preventDefault?.();
+    last.focus?.({ preventScroll: true });
+  } else if (!event.shiftKey && (active === last || !shell.contains(active))) {
+    event.preventDefault?.();
+    first.focus?.({ preventScroll: true });
+  }
 }
 
 export function setShellRoute(shell, routeId) {

@@ -38,15 +38,10 @@ export function createDirectiveView(sonder, { onClose = () => sonder.closeView()
     async render(container) {
       container.replaceChildren();
       const chatId = sonder.state()?.chatId;
+      const hasActiveStory = chatId !== undefined && chatId !== null;
       let projection = null;
       let projectionError = null;
-      if (chatId !== undefined && chatId !== null) {
-        try {
-          projection = await sonder.api("GET", `/api/extensions/directive/x/projection?chat_id=${encodeURIComponent(chatId)}`);
-        } catch (error) {
-          projectionError = error;
-        }
-      }
+      let projectionPending = hasActiveStory;
       const shell = createDirectiveShell({
         activeRouteId: state.route,
         onSelectRoute: (routeId) => {
@@ -67,6 +62,16 @@ export function createDirectiveView(sonder, { onClose = () => sonder.closeView()
       container.append(overlay);
       const body = shell.querySelector(".directive-route-body");
       drawRoute();
+      if (hasActiveStory) {
+        try {
+          projection = await sonder.api("GET", `/api/extensions/directive/x/projection?chat_id=${encodeURIComponent(chatId)}`);
+        } catch (error) {
+          projectionError = error;
+        } finally {
+          projectionPending = false;
+          drawRoute();
+        }
+      }
 
       function drawRoute() {
         body.replaceChildren();
@@ -80,6 +85,10 @@ export function createDirectiveView(sonder, { onClose = () => sonder.closeView()
           } else {
             body.append(noCampaignRoute(state.route));
           }
+          return;
+        }
+        if (projectionPending) {
+          body.append(loadingStory());
           return;
         }
         if (projectionError || !projection) {
@@ -115,6 +124,14 @@ export function createDirectiveView(sonder, { onClose = () => sonder.closeView()
       }
     }
   };
+}
+
+function loadingStory() {
+  const status = el("section", { class: "directive-empty", role: "status", "aria-live": "polite" },
+    el("p", { class: "directive-kicker" }, "DIRECTIVE CAMPAIGN"),
+    el("h1", {}, "Opening campaign record"),
+    el("p", {}, "Loading the player-safe campaign projection."));
+  return status;
 }
 
 function emptyStory(onClose) {

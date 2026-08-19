@@ -109,7 +109,12 @@ async function assertFocusEntry(targetPage) {
     true,
     "opening Directive must focus the actual close control",
   );
+  await targetPage.keyboard.press("Shift+Tab");
+  assert.equal(await targetPage.evaluate(() => document.activeElement?.dataset.routeId), "campaign",
+    "Shift+Tab from the first modal control must wrap to the last modal control");
   await targetPage.keyboard.press("Tab");
+  assert.equal(await targetPage.evaluate(() => document.activeElement?.matches(".directive-close-action")), true,
+    "Tab from the last modal control must wrap to the first modal control");
   const focusTarget = targetPage.locator('[data-route-id="campaign"]');
   await focusTarget.focus();
   const focusStyle = await focusTarget.evaluate((node) => {

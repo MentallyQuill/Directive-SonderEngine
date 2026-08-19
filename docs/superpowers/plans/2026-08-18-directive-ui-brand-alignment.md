@@ -34,7 +34,7 @@
 - Copy/adapt: `ui/directive.css` from `F:\git\Directive\styles\directive.css`
 
 **Interfaces:**
-- Produces: `DIRECTIVE_ROUTES`, `createDirectiveShell({activeRouteId,onSelectRoute,onClose,time})`, `setShellRoute(shell, routeId)`, and reusable safe DOM helpers.
+- Produces: `DIRECTIVE_ROUTES`, `createDirectiveShell({activeRouteId,onSelectRoute,onClose})`, `setShellRoute(shell, routeId)`, and reusable safe DOM helpers. Ship time remains route-native.
 - Consumes: no later-task interfaces.
 
 - [ ] **Step 1: Write the failing shell behavior test**
@@ -81,7 +81,7 @@ feat(ui): restore Directive LCARS shell
 
 - [ ] **Step 1: Write failing campaign/creator behavior tests**
 
-Test the real rendered UI for Command/Library/Records mode switching, active campaign facts, explicit missing-location state, four creator steps, required field retention across steps, review summary, atomic `/start` payload, `chats.open`, progress status, and retry after rejection. The production mutations caught are generic hero fallback, field loss, invented location, and bypassing the supported host lifecycle.
+Test the real rendered UI for Command/Library/Records mode switching, the source dashboard identity and layered hero, omission of absent location, four creator steps, required field retention across steps, review summary, atomic `/start` payload, `chats.open`, progress status, and retry after rejection. The production mutations caught are generic hero fallback, field loss, invented location, and bypassing the supported host lifecycle.
 
 - [ ] **Step 2: Run and verify RED**
 
@@ -198,4 +198,3 @@ Expected: 0 failures; only the known external-Sonder skips are allowed when the 
 ```text
 test(ui): prove Directive visual alignment
 ```
-

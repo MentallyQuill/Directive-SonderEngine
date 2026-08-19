@@ -37,7 +37,7 @@ Directive uses five routes in this order: Campaign, Mission, People, Ship, Setti
 Desktop and wide layouts use the Directive expanded shell:
 
 - a narrow segmented LCARS identifier rail;
-- a top bar with DIRECTIVE identity, active route path, ship time, and close action;
+- a top bar with DIRECTIVE identity, active route path, and close action; ship time remains in the source Campaign and Mission chronometers;
 - a route-colored heading cap;
 - one scroll-owning route workspace;
 - a five-control route shelf with vector glyphs and roving keyboard focus.
@@ -50,7 +50,7 @@ Sonder's `registerView`, `registerTopBarButton`, `registerSettingsSection`, `reg
 
 ### Campaign
 
-Campaign is the command surface, not a generic hero. It provides Command, Library, and Records modes with the same tab geometry as Directive. The active campaign card shows campaign title, player identity, ship, current mission, simulation mode, stardate, completion count, and current location when known. Package media uses the layered-looking framed treatment and exact campaign assets already shipped.
+Campaign is the command surface, not a generic hero. It provides Command, Library, and Records modes with the same tab geometry as Directive. The active source dashboard overlays campaign title, player identity, ship, current mission copy, and its route-native ship-time chronometer on the authored layered hero scene. Records may expose additional allowlisted projection facts; absent location or operational facts are omitted rather than invented.
 
 With no open story, Campaign contains the character-creation workflow inside the product shell. Identity, service, command profile, and review are explicit steps. All existing authoritative player fields remain required and are submitted unchanged to `/start`. Provisioning remains atomic and opens the new Sonder story through `chats.open`.
 
@@ -104,4 +104,3 @@ Verification has four layers:
 4. Full-page screenshots cover onboarding and all five routes at both viewports. Review compares them side by side with the authoritative Directive renders and records any intentional host-boundary difference.
 
 `LCARS UI and interactions` may be called verified only after the screenshots and functional checks pass. Remaining unported product behavior must stay explicitly in progress.
-

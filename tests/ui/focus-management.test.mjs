@@ -1,7 +1,40 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { Window } from "happy-dom";
 
 import * as directiveUi from "../../ui/index.js";
+import { createDirectiveView } from "../../ui/app.js";
+
+test("active-story focus enters Directive before a delayed projection resolves", async () => {
+  const window = new Window();
+  globalThis.document = window.document;
+  const launcher = window.document.createElement("button");
+  launcher.dataset.extButton = "directive-launch";
+  const container = window.document.createElement("div");
+  window.document.body.append(launcher, container);
+  launcher.focus();
+  let resolveProjection;
+  const projection = new Promise((resolve) => { resolveProjection = resolve; });
+  let rendering;
+  const sonder = {
+    state: () => ({ chatId: 27 }),
+    api: () => projection,
+    openView() {
+      rendering = createDirectiveView(sonder).render(container);
+      return true;
+    },
+    closeView() {},
+  };
+
+  const focus = directiveUi.createDirectiveFocusController(sonder, window.document);
+  focus.open();
+  await new Promise((resolve) => window.setTimeout(resolve, 25));
+
+  assert.equal(window.document.activeElement?.classList.contains("directive-close-action"), true);
+  resolveProjection({});
+  await rendering;
+  window.close();
+});
 
 test("opening Directive moves focus from the launcher into the view", () => {
   const launcher = focusable();

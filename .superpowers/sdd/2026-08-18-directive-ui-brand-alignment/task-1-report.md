@@ -7,7 +7,7 @@
 - Added safe DOM primitives that create elements, append text with text nodes, manage class state, and create vector glyph nodes without `innerHTML`.
 - Added standard roving route focus for ArrowLeft/ArrowRight/Home/End, Enter/Space/click activation, active tab state synchronization, Escape close, the explicit close control, and dialog semantics.
 - Copied the five route SVGs byte-for-byte from `F:\git\Directive` and pinned their authoritative SHA-256 values in the contract test.
-- Replaced the simplified Sonder stylesheet with the full authoritative `F:\git\Directive\styles\directive.css` base. Appended only a narrow `.directive-app` bridge for standalone viewport sizing, scroll ownership, 44 CSS pixel controls, the supplied time display, and mobile time hiding.
+- Replaced the simplified Sonder stylesheet with the full authoritative `F:\git\Directive\styles\directive.css` base. The final narrow `.directive-app` bridge preserves the source overlay sizing, scroll ownership, 44 CSS pixel controls, and supported extension asset URLs. Ship time is rendered only by route-native Campaign and Mission chronometers.
 - Kept the implementation on the Sonder facade boundary: no SillyTavern import, selector, global, storage, or network dependency was added.
 
 ## RED Evidence
@@ -90,7 +90,7 @@ Result: all exit 0. The copied stylesheet matches the authoritative source after
 
 ## Self-Review
 
-- Verified the public interfaces are exactly `DIRECTIVE_ROUTES`, `createDirectiveShell({ activeRouteId, onSelectRoute, onClose, time })`, `setShellRoute(shell, routeId)`, plus safe reusable DOM helpers.
+- Verified the final public interfaces are `DIRECTIVE_ROUTES`, `createDirectiveShell({ activeRouteId, onSelectRoute, onClose })`, `setShellRoute(shell, routeId)`, plus safe reusable DOM helpers.
 - Verified ordered route labels, rail segmentation, glyph mapping, selected/current/tabindex state, route paths, route body identity, click/keyboard activation, roving focus, Escape close, and explicit close callback through the real shell module.
 - Verified no player or people facts are rendered or invented by this shell layer.
 - Verified no unrelated dirty files were modified.
