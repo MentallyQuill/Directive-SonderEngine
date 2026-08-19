@@ -124,7 +124,7 @@ function renderPersonDetail(person) {
   }
   const identity = createElement("div", "people-detail-identity");
   identity.append(
-    appendText(createElement("span"), domain.crew_id ? "Personnel record" : "Observed contact"),
+    appendText(createElement("span"), person.directive ? "Personnel record" : "Observed contact"),
     appendText(createElement("h2"), literal(person.display_name, "Observed person")),
   );
   const role = [domain.rank, domain.role].filter(present).join(" / ");

@@ -9,13 +9,8 @@ from typing import Any
 from ..campaign.source import load_ashes_source
 from ..command.bearing import project_bearing
 from ..ship.mechanics import derive_ship_state
+from ..state.contracts import CrewProfile, StateContractError, migrate_crew_profile
 from ..time.clock import project_time
-
-
-_CREW_FIELDS = (
-    "crew_id", "rank", "role", "department", "assignment", "duty_status",
-    "public_record", "operational_summary",
-)
 
 
 def _asset_url(path: Any) -> str | None:
@@ -161,16 +156,16 @@ def _people(api, chat_id: int, player_view: Mapping[str, Any], media: Mapping[st
         person_id = str(person.get("id") or "")
         if person.get("kind") == "character" and person.get("identity_status") == "recognized" and person_id.isdigit():
             domain = api.char_state(chat_id, int(person_id)).get() or {}
-            if domain.get("kind") == "directive.crewDomain.v1" and domain.get("schema") == 1:
-                allowed = {
-                    field: copy.deepcopy(domain[field])
-                    for field in _CREW_FIELDS
-                    if field in domain
-                }
-                if allowed:
-                    if domain.get("crew_id") in media:
-                        allowed["media"] = copy.deepcopy(media[domain["crew_id"]])
-                    person["directive"] = allowed
+            try:
+                profile = CrewProfile.from_dict(migrate_crew_profile(domain))
+            except StateContractError:
+                profile = None
+            if profile is not None:
+                allowed = profile.to_public_dict()
+                actor_ref = profile.binding.actor_ref
+                if actor_ref in media:
+                    allowed["media"] = copy.deepcopy(media[actor_ref])
+                person["directive"] = allowed
         output.append(person)
     return output
 

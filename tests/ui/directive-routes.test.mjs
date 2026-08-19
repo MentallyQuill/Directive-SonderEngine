@@ -144,7 +144,6 @@ const PROJECTION = Object.freeze({
       identity_status: "recognized",
       facts: { public_history: "Captain Whitaker commands the Breckenridge." },
       directive: {
-        crew_id: "mara-whitaker",
         rank: "Captain",
         role: "Commanding Officer",
         department: "command",
@@ -163,7 +162,6 @@ const PROJECTION = Object.freeze({
       display_name: "Priya Nayar",
       identity_status: "recognized",
       directive: {
-        crew_id: "priya-nayar",
         rank: "Lieutenant Commander",
         role: "Chief Science Officer",
         department: "science",
@@ -237,6 +235,7 @@ test("People orders recognized Directive crew before observed contacts and selec
     "an unfamiliar ensignObserved contact",
   ]);
   assert.equal(state.selectedPersonId, "11");
+  assert.match(view.querySelector(".people-detail")?.textContent || "", /Personnel record/);
   assert.match(view.querySelector(".people-detail")?.textContent || "", /Science operations, diplomacy, executive command/);
   assert.match(view.querySelector(".people-detail")?.textContent || "", /Commanding officer since the Breckenridge's 2372 commission/);
   assert.match(view.querySelector(".people-detail")?.textContent || "", /Kingston, Ontario, Earth/);

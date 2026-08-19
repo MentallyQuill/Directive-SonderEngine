@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import json
+
 from directive.campaign.compiler import PlayerSetup, compile_ashes_archive
 from directive.campaign.source import load_ashes_source
 from directive.projection.player import _mission_projection, create_player_projection
+from directive.state.contracts import PACKAGE_ID, PACKAGE_VERSION
 
 
 def frame():
@@ -29,8 +32,14 @@ class API:
         self._state = Store({"settings": {"simulation_mode": "Command"}})
         self.states = {
             11: Store({
-                "kind": "directive.crewDomain.v1", "schema": 1,
-                "crew_id": "mara-whitaker", "rank": "Captain",
+                "kind": "directive.crewProfile.v2", "schema": 2,
+                "binding": {
+                    "kind": "directive.packageActorBinding.v1",
+                    "package_id": PACKAGE_ID,
+                    "package_version": PACKAGE_VERSION,
+                    "actor_ref": "mara-whitaker",
+                },
+                "rank": "Captain",
                 "role": "Commanding Officer", "department": "command",
                 "public_record": {"birthplace": "Kingston, Ontario, Earth"},
             })
@@ -44,7 +53,7 @@ class API:
 
     def player_view(self, chat_id, viewer):
         return {
-            "schema": 2,
+            "schema": 3,
             "viewer": {"id": "player", "name": "Sam Vickers", "kind": "player"},
             "story": {"chat_id": chat_id},
             "clock": {"elapsed_seconds": 0},
@@ -65,7 +74,6 @@ def test_projection_joins_directive_crew_only_by_stable_recognized_host_id():
 
     assert mara["id"] == "11"
     assert mara["directive"] == {
-        "crew_id": "mara-whitaker",
         "rank": "Captain",
         "role": "Commanding Officer",
         "department": "command",
@@ -86,6 +94,40 @@ def test_projection_joins_directive_crew_only_by_stable_recognized_host_id():
         "display_name": "an unfamiliar ensign",
         "identity_status": "observed",
     }
+
+
+def test_projection_never_exposes_portable_package_identity_material():
+    projection = create_player_projection(API(), 9)
+    rendered = json.dumps(projection)
+
+    for forbidden in (
+        "crew_id",
+        "actor_ref",
+        PACKAGE_ID,
+        PACKAGE_VERSION,
+        "directive-crew-mara-whitaker",
+    ):
+        assert forbidden not in rendered
+
+
+def test_projection_reads_v1_state_without_restoring_crew_identity_to_the_dto():
+    api = API()
+    api.states[11] = Store({
+        "kind": "directive.crewDomain.v1",
+        "schema": 1,
+        "crew_id": "mara-whitaker",
+        "rank": "Captain",
+        "role": "Commanding Officer",
+        "department": "command",
+    })
+
+    directive = create_player_projection(api, 9)["people"][0]["directive"]
+
+    assert directive["rank"] == "Captain"
+    assert directive["media"]["variants"]["thumb"].endswith(
+        "mara-whitaker.thumb.webp"
+    )
+    assert "crew_id" not in directive
 
 
 def test_projection_omits_hidden_objectives_and_private_state_roots():
