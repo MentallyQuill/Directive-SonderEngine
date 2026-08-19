@@ -1,61 +1,59 @@
 # Directive for Sonder Engine
 
-Directive is a native Sonder Engine extension for command-centered campaign
-play. The current migration target provisions the complete authored **Ashes of
-Peace** opening as one atomic Sonder story: player persona, senior staff,
-opening scene, campaign/frame state, source documents, Director and narration
-rules, provenance, and `actor_only` player authority.
+<p align="center">
+  <img src="assets/branding/directive-banner.jpg" alt="Directive Starship Command banner">
+</p>
 
-This repository is a hard cutover. It does not embed, call, or emulate
-SillyTavern, and it does not maintain a second transcript, identity system,
-provider layer, checkpoint store, or world timeline beside Sonder.
+Directive is a native Sonder Engine extension for command-centered Star Trek-style roleplay.
+The current migration target is a single native runtime:
 
-## Current migration state
+The extension provisions a complete playable `Ashes of Peace` story as one atomic Sonder story.
+That includes the player commission, captain and senior staff, opening continuity, and
+campaign rules in one operation.
 
-- Installable Sonder extension API 1 package.
-- Strict Directive chat, frame, and crew-state contracts.
-- Validated immutable loader for all 13 Ashes missions, ship, crew, and
-  cohesion data.
-- Deterministic archive compiler for one persona and seven senior officers.
-- `POST /start` using exactly one `api.provision_story` call.
-- Closed-candidate mission and ship settlement bound to the committing Sonder
-  turn, with deterministic objectives, consequences, Command Bearing, ship
-  work, capabilities, cohesion, and mission-chain transitions.
-- Player-safe aggregate projection joined to Sonder identity by stable id.
-- Command and Exploration simulation policies stored as campaign state and
-  injected through Sonder's Director resolve context.
-- Native ES-module LCARS application with creation, Campaign, Mission, Ship,
-  Crew, and People views, plus the 37 package-referenced Breckenridge assets.
-- Live integration proof against the pinned current Sonder checkout, including
-  byte-identical database refusal for invalid turn-zero documents, extension
-  UI asset serving, transactional commit-domain advancement, checkpoint rewind,
-  branch carriage, and portable export/import of Directive state and documents.
+## What you can play today
 
-Generated cohesion scheduling, people-event authoring, expanded creator assist,
-adversarial secret-safety coverage, and full branch/replay round trips remain
-active migration work. See
-[`docs/MIGRATION_STATUS.md`](docs/MIGRATION_STATUS.md) and
-[`docs/MIGRATION_RESPONSIBILITY_MATRIX.md`](docs/MIGRATION_RESPONSIBILITY_MATRIX.md).
+`Ashes of Peace` is the only live campaign.
+Other campaign names may exist as previews only.
 
-## Development
+## Fast start
 
-Python 3.11 or newer and pytest 8+ are required. To exercise the live host
-boundary, keep a Sonder Engine checkout beside this repository or set
-`SONDER_ENGINE_ROOT` to its location.
+1. Install this extension in your host using your normal Sonder extension flow.
+2. Open a story and click the Directive top-bar button (`⌁`).
+3. On Campaign, fill the commissioning form and complete all steps.
+4. Choose your simulation mode.
+5. Click **Start Campaign** to create the active story atomically.
+6. Continue with normal prose gameplay in the host chat.
 
-```powershell
-python -m pytest -q
-python -m compileall -q directive extension.py
-```
+## Main screens
 
-The integration suite stages this extension under a temporary directory named
-`directive`; it never installs into or writes to the reference Sonder checkout.
+Campaign shows setup, continuation state, and save controls that are available in your host.
+Mission shows current objectives, outcomes, and known facts.
+People shows public personnel records and contact history.
+Ship shows operational cohesion, assignment status, and systems.
+Settings shows campaign authority, provider ownership, and storage health.
 
-## Reference revisions
+## Alpha expectations
 
-- Directive: `06b7e3160a6c1fefe2134e5cac926843b5a0c1ee`
-- Sonder Engine design baseline: `a79443b10a0872c1a3ffb3e9840232b1fd622209`
-- Sonder Engine final verification: `418ab5b469ebd8682157646229ae7e5bc7aa078b`
+This is an active Alpha.
+The migration is stable for core play, but several backend-facing features are still being finished.
+Expect occasional edge cases and release-to-release shifts.
 
-The reference checkouts are read-only inputs. No push, publication, deployment,
-or pull request is part of this migration workspace.
+## What not to expect (yet)
+
+This is a migration from the old SillyTavern runtime.
+Directive does not run inside SillyTavern and does not keep the old save system.
+There is no SillyTavern preset requirement inside Directive itself.
+Campaign save/load/delete and branch management are owned by your active Sonder host and still being finalized.
+
+## Documentation
+
+Start with [the documentation index](docs/DOCUMENTATION_INDEX.md) before your first campaign run.
+
+## Source and references
+
+- [Migration status](docs/MIGRATION_STATUS.md)
+- [Architecture summary](docs/ARCHITECTURE.md)
+- [Responsibility matrix](docs/MIGRATION_RESPONSIBILITY_MATRIX.md)
+- [Migration evidence and proofs](docs/superpowers/plans)
+

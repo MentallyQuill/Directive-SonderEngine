@@ -12,3 +12,4 @@ engine.db*
 .tmp/
 artifacts/
 .worktrees/
+.superpowers/
